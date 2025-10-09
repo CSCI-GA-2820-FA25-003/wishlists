@@ -15,28 +15,26 @@
 ######################################################################
 
 """
-TestYourResourceModel API Service Test Suite
+Wishlist Service API Service Test Suite
 """
-
-# pylint: disable=duplicate-code
 import os
 import logging
 from unittest import TestCase
 from wsgi import app
+from tests.factories import WishlistFactory, ItemFactory
 from service.common import status
-from service.models import db, YourResourceModel
+from service.models import db, Wishlist
 
 DATABASE_URI = os.getenv(
-    "DATABASE_URI", "postgresql+psycopg://postgres:postgres@localhost:5432/testdb"
+    "DATABASE_URI", "postgresql+psycopg://postgres:postgres@localhost:5432/postgres"
 )
 
 
 ######################################################################
 #  T E S T   C A S E S
 ######################################################################
-# pylint: disable=too-many-public-methods
-class TestYourResourceService(TestCase):
-    """REST API Server Tests"""
+class TestWishlistService(TestCase):
+    """Wishlist Service Tests"""
 
     @classmethod
     def setUpClass(cls):
@@ -50,17 +48,17 @@ class TestYourResourceService(TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        """Run once after all tests"""
+        """Runs once before test suite"""
         db.session.close()
 
     def setUp(self):
         """Runs before each test"""
         self.client = app.test_client()
-        db.session.query(YourResourceModel).delete()  # clean up the last tests
+        db.session.query(Wishlist).delete()  # clean up the last tests
         db.session.commit()
 
     def tearDown(self):
-        """This runs after each test"""
+        """Runs once after each test case"""
         db.session.remove()
 
     ######################################################################
