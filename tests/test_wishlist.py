@@ -253,7 +253,7 @@ class TestWishlist(TestCase):
 
     def test_wishlist_update_without_id_raises(self):
         """Wishlist.update should fail when id is empty (PersistentBase.update)"""
-        wl = Wishlist()  # 没有持久化，id 为空
+        wl = Wishlist()
         with self.assertRaises(DataValidationError) as ctx:
-            wl.update()  # 走到 raise DataValidationError("Update called with empty ID field")
+            wl.update()
         self.assertIn("empty ID field", str(ctx.exception))
