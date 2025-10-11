@@ -161,6 +161,28 @@ def get_wishlist_items(wishlist_id, item_id):
 
 
 ######################################################################
+# LIST ALL wishlists
+######################################################################
+@app.route("/wishlists", methods=["GET"])
+def list_wishlists():
+    """Returns all of the Accounts"""
+    app.logger.info("Request for Wishlists list")
+    wishlists = []
+
+    # Process the query string if any
+    customer_id = request.args.get("customer_id")
+    if customer_id:
+        wishlists = Wishlist.find_by_name(customer_id)
+    else:
+        wishlists = Wishlist.all()
+
+    # Return as an array of dictionaries
+    results = [wishlist.serialize() for wishlist in wishlists]
+
+    return jsonify(results), status.HTTP_200_OK
+
+
+######################################################################
 #  U T I L I T Y   F U N C T I O N S
 ######################################################################
 
