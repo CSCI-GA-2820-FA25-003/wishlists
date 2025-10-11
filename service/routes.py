@@ -15,10 +15,10 @@
 ######################################################################
 
 """
-YourResourceModel Service
+Wishlist Service
 
 This service implements a REST API that allows you to Create, Read, Update
-and Delete YourResourceModel
+and Delete Wishlist
 """
 
 from flask import jsonify, request, url_for, abort
@@ -34,7 +34,14 @@ from service.common import status  # HTTP Status Codes
 def index():
     """Root URL response"""
     return (
-        "Reminder: return some useful information in json format about the service here",
+        jsonify(
+            name="Wishlist Service",
+            version="1.0.0",
+            description="RESTful service for managing wishlists",
+            paths={
+                "wishlists": "/wishlists",
+            },
+        ),
         status.HTTP_200_OK,
     )
 

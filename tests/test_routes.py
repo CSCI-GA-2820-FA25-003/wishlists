@@ -70,6 +70,11 @@ class TestWishlistService(TestCase):
         """It should call the home page"""
         resp = self.client.get("/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        data = resp.get_json()
+        self.assertEqual(data["name"], "Wishlist Service")
+        self.assertEqual(data["version"], "1.0.0")
+        self.assertEqual(data["description"], "RESTful service for managing wishlists")
+        self.assertIn("wishlists", data["paths"])
 
     ######################################################################
     #  H E L P E R   M E T H O D S
