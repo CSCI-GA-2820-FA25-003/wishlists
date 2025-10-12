@@ -81,6 +81,26 @@ def create_wishlists():
 
 
 ######################################################################
+# DELETE A WISHLIST
+######################################################################
+@app.route("/wishlists/<int:wishlist_id>", methods=["DELETE"])
+def delete_wishlists(wishlist_id: int):
+    """Deletes a Wishlist by id"""
+    app.logger.info("Request to delete Wishlist with id [%s]", wishlist_id)
+
+    wishlist = Wishlist.find(wishlist_id)
+    if wishlist is None:
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Wishlist with id '{wishlist_id}' was not found.",
+        )
+
+    wishlist.delete()
+    app.logger.info("Wishlist with id [%s] deleted", wishlist_id)
+    return "", status.HTTP_204_NO_CONTENT
+
+
+######################################################################
 #  U T I L I T Y   F U N C T I O N S
 ######################################################################
 
