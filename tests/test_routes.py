@@ -129,22 +129,22 @@ class TestWishlistService(TestCase):
 
         # Todo: Uncomment this code when get_wishlists is implemented
 
-        # # Check that the location header was correct by getting it
-        # resp = self.client.get(location, content_type="application/json")
-        # self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        # new_wishlist = resp.get_json()
-        # self.assertEqual(
-        #     new_wishlist["customer_id"],
-        #     wishlist.customer_id,
-        #     "Customer IDs do not match",
-        # )
-        # self.assertEqual(new_wishlist["name"], wishlist.name, "Names do not match")
-        # self.assertEqual(
-        #     new_wishlist["description"],
-        #     wishlist.description,
-        #     "Descriptions do not match",
-        # )
-        # self.assertEqual(new_wishlist["items"], wishlist.items, "Items do not match")
+        # Check that the location header was correct by getting it
+        resp = self.client.get(location, content_type="application/json")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        new_wishlist = resp.get_json()
+        self.assertEqual(
+            new_wishlist["customer_id"],
+            wishlist.customer_id,
+            "Customer IDs do not match",
+        )
+        self.assertEqual(new_wishlist["name"], wishlist.name, "Names do not match")
+        self.assertEqual(
+            new_wishlist["description"],
+            wishlist.description,
+            "Descriptions do not match",
+        )
+        self.assertEqual(new_wishlist["items"], wishlist.items, "Items do not match")
 
     def test_create_wishlist_bad_payload(self):
         """It should fail with 400 BAD_REQUEST when request body is missing required fields"""
@@ -201,6 +201,25 @@ class TestWishlistService(TestCase):
         data = resp.get_json()
         self.assertEqual(data["status"], status.HTTP_404_NOT_FOUND)
         self.assertIn("Not Found", data["error"])
+        
+    def test_get_wishlist(self):
+        """It should Get a single Wishlist"""
+        # get the id of a wishlist
+        test_wishlist = self._create_wishlists(1)[0]
+        response = self.client.get(f"{BASE_URL}/{test_wishlist.id}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(data["name"], test_wishlist.name)
+        self.assertEqual(data["customer_id"], test_wishlist.customer_id)
+        self.assertEqual(data["description"], test_wishlist.description)
+
+    def test_get_wishlist_not_found(self):
+        """It should not Get a Wishlist that's not found"""
+        response = self.client.get(f"{BASE_URL}/0")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        data = response.get_json()
+        logging.debug("Response data = %s", data)
+        self.assertIn("was not found", data["message"])
 
     ######################################################################
     #  I T E M   T E S T   C A S E S

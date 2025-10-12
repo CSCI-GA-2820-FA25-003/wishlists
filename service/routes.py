@@ -73,8 +73,8 @@ def create_wishlists():
     message = wishlist.serialize()
 
     # Todo: uncomment this code when get_wishlists is implemented
-    # location_url = url_for("get_wishlists", wishlist_id=wishlist.id, _external=True)
-    location_url = "unknown"
+    location_url = url_for("get_wishlists", wishlist_id=wishlist.id, _external=True)
+    # location_url = "unknown"
 
     app.logger.info("Wishlist with id [%s] created.", wishlist.id)
     return jsonify(message), status.HTTP_201_CREATED, {"Location": location_url}
@@ -98,6 +98,29 @@ def delete_wishlists(wishlist_id: int):
     wishlist.delete()
     app.logger.info("Wishlist with id [%s] deleted", wishlist_id)
     return "", status.HTTP_204_NO_CONTENT
+
+
+######################################################################
+# READ A WISHLIST
+######################################################################
+@app.route("/wishlists/<int:wishlist_id>", methods=["GET"])
+def get_wishlists(wishlist_id):
+    """
+    Retrieve a single Wishlist
+    This endpoint will return a Wishlist based on its id
+    """
+    app.logger.info("Request to Retrieve a wishlist with id [%s]", wishlist_id)
+
+    # Attempt to find the Wishlist and abort if not found
+    wishlist = Wishlist.find(wishlist_id)
+    if not wishlist:
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Wishlist with id '{wishlist_id}' was not found.",
+        )
+
+    app.logger.info("Returning wishlist: %s", wishlist.name)
+    return jsonify(wishlist.serialize()), status.HTTP_200_OK
 
 
 ######################################################################
