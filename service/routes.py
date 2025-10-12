@@ -53,6 +53,97 @@ def index():
 
 
 ######################################################################
+# ADD AN ITEM TO A WISHLIST
+######################################################################
+@app.route("/wishlists/<int:wishlist_id>/items", methods=["POST"])
+def add_wishlist_item(wishlist_id: int):
+    """
+    Adds a product Item to a Wishlist
+
+    Expects JSON body with: product_id (int), product_name (str), price (number)
+    Optional: description (ignored by current data model)
+
+    Duplicate prevention on (wishlist_id, product_id).
+    Note: Authentication/authorization is intentionally not handled here and is
+    expected to be enforced by upstream services (e.g., API Gateway).
+    """
+    app.logger.info("Request to add Item to Wishlist %s", wishlist_id)
+    check_content_type("application/json")
+
+    # Ensure wishlist exists
+    wishlist = Wishlist.find(wishlist_id)
+    if not wishlist:
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Wishlist with id '{wishlist_id}' was not found.",
+        )
+
+    # No ownership/auth checks in this service per product decision
+
+    payload = request.get_json() or {}
+
+    # Validate required fields
+    missing = [f for f in ("product_id", "product_name", "price") if f not in payload]
+    if missing:
+        abort(
+            status.HTTP_400_BAD_REQUEST,
+            f"Invalid request: missing required field(s): {', '.join(missing)}",
+        )
+
+    # product_id validation
+    product_id = payload.get("product_id")
+    if not isinstance(product_id, int):
+        abort(status.HTTP_400_BAD_REQUEST, "product_id must be an integer")
+    if product_id <= 0:
+        abort(status.HTTP_400_BAD_REQUEST, "Invalid product_id: must be positive")
+
+    # product_name validation (basic)
+    product_name = payload.get("product_name")
+    if not isinstance(product_name, str) or not product_name.strip():
+        abort(status.HTTP_400_BAD_REQUEST, "product_name must be a non-empty string")
+
+    # price snapshot
+    price = payload.get("price")
+    try:
+        price_val = float(price)
+    except Exception:  # pylint: disable=broad-except
+        abort(status.HTTP_400_BAD_REQUEST, "price must be a number")
+
+    # Duplicate prevention
+    existing = Item.query.filter_by(
+        wishlist_id=wishlist_id, product_id=product_id
+    ).first()
+    if existing:
+        abort(
+            status.HTTP_409_CONFLICT,
+            f"Item with product_id '{product_id}' already exists in this wishlist.",
+        )
+
+    # Create and persist the item
+    item = Item(
+        wishlist_id=wishlist.id,
+        customer_id=wishlist.customer_id,
+        product_id=product_id,
+        product_name=product_name,
+        prices=price_val,
+    )
+    item.create()
+
+    # Refetch to ensure server defaults (wish_date) are populated
+    item = Item.find(item.id)
+
+    location_url = url_for(
+        "get_wishlist_items", wishlist_id=wishlist.id, item_id=item.id, _external=True
+    )
+    app.logger.info("Item %s added to Wishlist %s", item.id, wishlist.id)
+    return (
+        jsonify(item.serialize()),
+        status.HTTP_201_CREATED,
+        {"Location": location_url},
+    )
+
+
+######################################################################
 # CREATE A NEW WISHLIST
 ######################################################################
 @app.route("/wishlists", methods=["POST"])
