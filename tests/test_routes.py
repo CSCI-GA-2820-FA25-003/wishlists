@@ -195,4 +195,38 @@ class TestWishlistService(TestCase):
     #  I T E M   T E S T   C A S E S
     ######################################################################
 
-    # Todo: Add your test cases here...
+    def test_get_wishlist_item(self):
+        """It should Get a single Item from a Wishlist"""
+        # Create a wishlist with an item
+        wishlist = WishlistFactory()
+        item = ItemFactory(wishlist=wishlist)
+        wishlist.items.append(item)
+        wishlist.create()
+
+        # Retrieve the item
+        response = self.client.get(f"{BASE_URL}/{wishlist.id}/items/{item.id}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        data = response.get_json()
+        self.assertEqual(data["id"], item.id)
+        self.assertEqual(data["product_id"], item.product_id)
+        self.assertEqual(data["product_name"], item.product_name)
+        self.assertEqual(data["wishlist_id"], wishlist.id)
+
+    def test_get_wishlist_item_not_found(self):
+        """It should not Get an Item that doesn't exist"""
+        # Create a wishlist without items
+        wishlist = self._create_wishlists(1)[0]
+
+        # Try to get non-existent item
+        response = self.client.get(f"{BASE_URL}/{wishlist.id}/items/0")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        data = response.get_json()
+        self.assertIn("was not found", data["message"])
+
+    def test_get_item_wishlist_not_found(self):
+        """It should not Get an Item if Wishlist doesn't exist"""
+        response = self.client.get(f"{BASE_URL}/0/items/1")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        data = response.get_json()
+        self.assertIn("Wishlist", data["message"])

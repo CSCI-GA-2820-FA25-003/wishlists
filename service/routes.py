@@ -104,6 +104,43 @@ def get_wishlists(wishlist_id):
 
 
 ######################################################################
+# READ A WISHLIST ITEM
+######################################################################
+@app.route("/wishlists/<int:wishlist_id>/items/<int:item_id>", methods=["GET"])
+def get_wishlist_items(wishlist_id, item_id):
+    """
+    Retrieve a single Item from a Wishlist
+    This endpoint will return an Item based on its id
+    """
+    app.logger.info(
+        "Request to retrieve Item %s from Wishlist %s", item_id, wishlist_id
+    )
+
+    # First check if the wishlist exists
+    wishlist = Wishlist.find(wishlist_id)
+    if not wishlist:
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Wishlist with id '{wishlist_id}' was not found.",
+        )
+
+    # Then check if the item exists
+    item = Item.find(item_id)
+    if not item:
+        abort(status.HTTP_404_NOT_FOUND, f"Item with id '{item_id}' was not found.")
+
+    # Verify the item belongs to this wishlist
+    if item.wishlist_id != wishlist_id:
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Item with id '{item_id}' was not found in Wishlist '{wishlist_id}'.",
+        )
+
+    app.logger.info("Returning item: %s", item.product_name)
+    return jsonify(item.serialize()), status.HTTP_200_OK
+
+
+######################################################################
 #  U T I L I T Y   F U N C T I O N S
 ######################################################################
 
