@@ -47,12 +47,6 @@ def index():
 
 
 ######################################################################
-#  R E S T   A P I   E N D P O I N T S
-######################################################################
-# Todo: Place your REST API code here ...
-
-
-######################################################################
 # CREATE A NEW WISHLIST
 ######################################################################
 @app.route("/wishlists", methods=["POST"])
@@ -158,6 +152,28 @@ def get_wishlist_items(wishlist_id, item_id):
 
     app.logger.info("Returning item: %s", item.product_name)
     return jsonify(item.serialize()), status.HTTP_200_OK
+
+
+######################################################################
+# LIST ALL wishlists
+######################################################################
+@app.route("/wishlists", methods=["GET"])
+def list_wishlists():
+    """Returns all of the Accounts"""
+    app.logger.info("Request for Wishlists list")
+    wishlists = []
+
+    # Process the query string if any
+    customer_id = request.args.get("customer_id")
+    if customer_id:
+        wishlists = Wishlist.find_by_name(customer_id)
+    else:
+        wishlists = Wishlist.all()
+
+    # Return as an array of dictionaries
+    results = [wishlist.serialize() for wishlist in wishlists]
+
+    return jsonify(results), status.HTTP_200_OK
 
 
 ######################################################################
