@@ -172,6 +172,36 @@ class TestWishlistService(TestCase):
         data = resp.get_json()
         self.assertEqual(data["status"], status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
 
+    def test_delete_wishlist_success(self):
+        """It should delete a Wishlist and return 204 NO_CONTENT"""
+        # Create a wishlist first
+        wishlist = WishlistFactory()
+        resp = self.client.post(
+            BASE_URL, json=wishlist.serialize(), content_type="application/json"
+        )
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        wishlist_id = resp.get_json()["id"]
+
+        # Sanity: it exists in DB
+        self.assertIsNotNone(Wishlist.find(wishlist_id))
+
+        # Delete it
+        resp = self.client.delete(f"{BASE_URL}/{wishlist_id}")
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+        # No response body for 204
+        self.assertEqual(resp.data, b"")
+
+        # Verify removed from DB
+        self.assertIsNone(Wishlist.find(wishlist_id))
+
+    def test_delete_wishlist_not_found(self):
+        """It should return 404 NOT_FOUND when deleting a non-existent Wishlist"""
+        resp = self.client.delete(f"{BASE_URL}/0")
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+        data = resp.get_json()
+        self.assertEqual(data["status"], status.HTTP_404_NOT_FOUND)
+        self.assertIn("Not Found", data["error"])
+        
     def test_get_wishlist(self):
         """It should Get a single Wishlist"""
         # get the id of a wishlist
