@@ -33,13 +33,26 @@ from service.common import status  # HTTP Status Codes
 @app.route("/")
 def index():
     """Root URL response"""
+    base = request.host_url.rstrip("/")
     return (
         jsonify(
             name="Wishlist Service",
             version="1.0.0",
             description="RESTful service for managing wishlists",
             paths={
-                "wishlists": "/wishlists",
+                # "wishlists": "/wishlists",
+                # ----------- Wishlist endpoints -----------
+                "list_all_wishlists": f"{base}/wishlists",
+                "create_wishlist": f"{base}/wishlists",
+                "get_wishlist": f"{base}/wishlists/{{wishlist_id}}",
+                "update_wishlist": f"{base}/wishlists/{{wishlist_id}}",
+                "delete_wishlist": f"{base}/wishlists/{{wishlist_id}}",
+                # ----------- Wishlist Item endpoints -----------
+                "list_wishlist_items": f"{base}/wishlists/{{wishlist_id}}/items",
+                "create_wishlist_item": f"{base}/wishlists/{{wishlist_id}}/items",
+                "get_wishlist_item": f"{base}/wishlists/{{wishlist_id}}/items/{{item_id}}",
+                "update_wishlist_item": f"{base}/wishlists/{{wishlist_id}}/items/{{item_id}}",
+                "delete_wishlist_item": f"{base}/wishlists/{{wishlist_id}}/items/{{item_id}}",
             },
         ),
         status.HTTP_200_OK,
@@ -66,7 +79,6 @@ def create_wishlists():
     # Create a message to return
     message = wishlist.serialize()
 
-    # Todo: uncomment this code when get_wishlists is implemented
     location_url = url_for("get_wishlists", wishlist_id=wishlist.id, _external=True)
     # location_url = "unknown"
 
