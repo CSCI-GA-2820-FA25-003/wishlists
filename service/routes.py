@@ -83,14 +83,43 @@ def delete_wishlists(wishlist_id: int):
     app.logger.info("Request to delete Wishlist with id [%s]", wishlist_id)
 
     wishlist = Wishlist.find(wishlist_id)
-    if wishlist is None:
-        abort(
-            status.HTTP_404_NOT_FOUND,
-            f"Wishlist with id '{wishlist_id}' was not found.",
+    # if wishlist is None:
+    #     abort(
+    #         status.HTTP_404_NOT_FOUND,
+    #         f"Wishlist with id '{wishlist_id}' was not found.",
+    #     )
+    if wishlist:
+        wishlist.delete()
+
+    app.logger.info("Wishlist with id [%s] deleted", wishlist_id)
+    return "", status.HTTP_204_NO_CONTENT
+
+
+######################################################################
+# DELETE A WISHLIST ITEM
+######################################################################
+@app.route("/wishlists/<int:wishlist_id>/items/<int:item_id>", methods=["DELETE"])
+def delete_wishlist_items(wishlist_id: int, item_id: int):
+    """
+    Idempotently delete an Item from a Wishlist.
+    Always return 204, even if the item does not exist or does not belong to the wishlist.
+    """
+    app.logger.info(
+        "Request to delete Item [%s] from Wishlist [%s]", item_id, wishlist_id
+    )
+
+    item = Item.find(item_id)
+
+    if item and item.wishlist_id == wishlist_id:
+        item.delete()
+        app.logger.info("Item [%s] deleted from Wishlist [%s]", item_id, wishlist_id)
+    else:
+        app.logger.info(
+            "Item [%s] not present in Wishlist [%s]; returning 204 (idempotent)",
+            item_id,
+            wishlist_id,
         )
 
-    wishlist.delete()
-    app.logger.info("Wishlist with id [%s] deleted", wishlist_id)
     return "", status.HTTP_204_NO_CONTENT
 
 
@@ -166,7 +195,7 @@ def list_wishlists():
     # Process the query string if any
     customer_id = request.args.get("customer_id")
     if customer_id:
-        wishlists = Wishlist.find_by_name(customer_id)
+        wishlists = Wishlist.find_by_customer(customer_id)
     else:
         wishlists = Wishlist.all()
 

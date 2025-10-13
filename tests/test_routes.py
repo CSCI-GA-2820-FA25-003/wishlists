@@ -216,13 +216,13 @@ class TestWishlistService(TestCase):
         # Verify removed from DB
         self.assertIsNone(Wishlist.find(wishlist_id))
 
-    def test_delete_wishlist_not_found(self):
-        """It should return 404 NOT_FOUND when deleting a non-existent Wishlist"""
-        resp = self.client.delete(f"{BASE_URL}/0")
-        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
-        data = resp.get_json()
-        self.assertEqual(data["status"], status.HTTP_404_NOT_FOUND)
-        self.assertIn("Not Found", data["error"])
+    # def test_delete_wishlist_not_found(self):
+    #     """It should return 404 NOT_FOUND when deleting a non-existent Wishlist"""
+    #     resp = self.client.delete(f"{BASE_URL}/0")
+    #     self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+    #     data = resp.get_json()
+    #     self.assertEqual(data["status"], status.HTTP_404_NOT_FOUND)
+    #     self.assertIn("Not Found", data["error"])
 
     def test_get_wishlist(self):
         """It should Get a single Wishlist"""
@@ -282,3 +282,46 @@ class TestWishlistService(TestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         data = response.get_json()
         self.assertIn("Wishlist", data["message"])
+
+    def test_delete_wishlist_item_success(self):
+        """It should delete an Item from a Wishlist and return 204 NO_CONTENT"""
+
+        wishlist = WishlistFactory()
+        item = ItemFactory(wishlist=wishlist)
+        wishlist.items.append(item)
+        wishlist.create()
+
+        self.assertIsNotNone(item.id)
+
+        resp = self.client.delete(f"{BASE_URL}/{wishlist.id}/items/{item.id}")
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(resp.data, b"")
+
+        from service.models import Item
+
+        self.assertIsNone(Item.find(item.id))
+
+    def test_delete_wishlist_item_not_found(self):
+        """It should return 204 when deleting a non-existent Item (idempotent)"""
+        wishlist = self._create_wishlists(1)[0]
+
+        resp = self.client.delete(f"{BASE_URL}/{wishlist.id}/items/0")
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(resp.data, b"")
+
+    def test_delete_wishlist_item_wrong_wishlist(self):
+        """It should return 204 and NOT delete when item belongs to a different wishlist"""
+        w1 = WishlistFactory()
+        item = ItemFactory(wishlist=w1)
+        w1.items.append(item)
+        w1.create()
+
+        w2 = WishlistFactory()
+        w2.create()
+
+        resp = self.client.delete(f"{BASE_URL}/{w2.id}/items/{item.id}")
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+
+        from service.models import Item
+
+        self.assertIsNotNone(Item.find(item.id))
