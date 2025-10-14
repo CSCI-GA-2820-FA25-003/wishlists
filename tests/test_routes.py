@@ -25,6 +25,7 @@ from tests.factories import WishlistFactory, ItemFactory
 from service.common import status
 from service.models import db, Wishlist
 
+
 DATABASE_URI = os.getenv(
     "DATABASE_URI", "postgresql+psycopg://postgres:postgres@localhost:5432/postgres"
 )
@@ -100,6 +101,14 @@ class TestWishlistService(TestCase):
     #  W I S H L I S T   T E S T   C A S E S
     ######################################################################
 
+    def test_get_wishlist_list(self):
+        """It should Get a list of Wishlists"""
+        self._create_wishlists(5)
+        resp = self.client.get(BASE_URL)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        data = resp.get_json()
+        self.assertEqual(len(data), 5)
+
     def test_create_wishlist(self):
         """It should Create a new Wishlist"""
         wishlist = WishlistFactory()
@@ -145,6 +154,19 @@ class TestWishlistService(TestCase):
             "Descriptions do not match",
         )
         self.assertEqual(new_wishlist["items"], wishlist.items, "Items do not match")
+
+    def test_create_wishlist_no_content_type(self):
+        """It should return 415 when Content-Type header is missing"""
+        wishlist = WishlistFactory()
+
+        resp = self.client.post(
+            BASE_URL,
+            data=str(wishlist.serialize()),
+        )
+
+        self.assertEqual(resp.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
+        data = resp.get_json()
+        self.assertIn("Content-Type", data["message"])
 
     def test_create_wishlist_bad_payload(self):
         """It should fail with 400 BAD_REQUEST when request body is missing required fields"""
@@ -201,7 +223,7 @@ class TestWishlistService(TestCase):
         data = resp.get_json()
         self.assertEqual(data["status"], status.HTTP_404_NOT_FOUND)
         self.assertIn("Not Found", data["error"])
-        
+
     def test_get_wishlist(self):
         """It should Get a single Wishlist"""
         # get the id of a wishlist
