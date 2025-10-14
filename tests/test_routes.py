@@ -75,7 +75,42 @@ class TestWishlistService(TestCase):
         self.assertEqual(data["name"], "Wishlist Service")
         self.assertEqual(data["version"], "1.0.0")
         self.assertEqual(data["description"], "RESTful service for managing wishlists")
-        self.assertIn("wishlists", data["paths"])
+        # self.assertIn("wishlists", data["paths"])
+        self.assertIn("paths", data)
+        self.assertIsInstance(data["paths"], dict)
+        paths = data["paths"]
+
+        expected_keys = {
+            "list_all_wishlists",
+            "create_wishlist",
+            "get_wishlist",
+            "update_wishlist",
+            "delete_wishlist",
+            "list_wishlist_items",
+            "create_wishlist_item",
+            "get_wishlist_item",
+            "update_wishlist_item",
+            "delete_wishlist_item",
+        }
+        self.assertTrue(expected_keys.issubset(paths.keys()))
+        self.assertTrue(paths["list_all_wishlists"].endswith("/wishlists"))
+        self.assertTrue(paths["create_wishlist"].endswith("/wishlists"))
+        self.assertIn("/wishlists/{wishlist_id}", paths["get_wishlist"])
+        self.assertIn("/wishlists/{wishlist_id}", paths["update_wishlist"])
+        self.assertIn("/wishlists/{wishlist_id}", paths["delete_wishlist"])
+
+        self.assertIn("/wishlists/{wishlist_id}/items", paths["list_wishlist_items"])
+        self.assertIn("/wishlists/{wishlist_id}/items", paths["create_wishlist_item"])
+
+        self.assertIn(
+            "/wishlists/{wishlist_id}/items/{item_id}", paths["get_wishlist_item"]
+        )
+        self.assertIn(
+            "/wishlists/{wishlist_id}/items/{item_id}", paths["update_wishlist_item"]
+        )
+        self.assertIn(
+            "/wishlists/{wishlist_id}/items/{item_id}", paths["delete_wishlist_item"]
+        )
 
     ######################################################################
     #  H E L P E R   M E T H O D S
@@ -135,8 +170,6 @@ class TestWishlistService(TestCase):
             "Descriptions do not match",
         )
         self.assertEqual(new_wishlist["items"], wishlist.items, "Items do not match")
-
-        # Todo: Uncomment this code when get_wishlists is implemented
 
         # Check that the location header was correct by getting it
         resp = self.client.get(location, content_type="application/json")
@@ -216,13 +249,13 @@ class TestWishlistService(TestCase):
         # Verify removed from DB
         self.assertIsNone(Wishlist.find(wishlist_id))
 
-    def test_delete_wishlist_not_found(self):
-        """It should return 404 NOT_FOUND when deleting a non-existent Wishlist"""
-        resp = self.client.delete(f"{BASE_URL}/0")
-        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
-        data = resp.get_json()
-        self.assertEqual(data["status"], status.HTTP_404_NOT_FOUND)
-        self.assertIn("Not Found", data["error"])
+    # def test_delete_wishlist_not_found(self):
+    #     """It should return 404 NOT_FOUND when deleting a non-existent Wishlist"""
+    #     resp = self.client.delete(f"{BASE_URL}/0")
+    #     self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+    #     data = resp.get_json()
+    #     self.assertEqual(data["status"], status.HTTP_404_NOT_FOUND)
+    #     self.assertIn("Not Found", data["error"])
 
     def test_get_wishlist(self):
         """It should Get a single Wishlist"""
@@ -404,6 +437,49 @@ class TestWishlistService(TestCase):
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         data = resp.get_json()
         self.assertIn("price", data["message"])  # indicates missing field
+
+    def test_delete_wishlist_item_success(self):
+        """It should delete an Item from a Wishlist and return 204 NO_CONTENT"""
+
+        wishlist = WishlistFactory()
+        item = ItemFactory(wishlist=wishlist)
+        wishlist.items.append(item)
+        wishlist.create()
+
+        self.assertIsNotNone(item.id)
+
+        resp = self.client.delete(f"{BASE_URL}/{wishlist.id}/items/{item.id}")
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(resp.data, b"")
+
+        from service.models import Item
+
+        self.assertIsNone(Item.find(item.id))
+
+    def test_delete_wishlist_item_not_found(self):
+        """It should return 204 when deleting a non-existent Item (idempotent)"""
+        wishlist = self._create_wishlists(1)[0]
+
+        resp = self.client.delete(f"{BASE_URL}/{wishlist.id}/items/0")
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(resp.data, b"")
+
+    def test_delete_wishlist_item_wrong_wishlist(self):
+        """It should return 204 and NOT delete when item belongs to a different wishlist"""
+        w1 = WishlistFactory()
+        item = ItemFactory(wishlist=w1)
+        w1.items.append(item)
+        w1.create()
+
+        w2 = WishlistFactory()
+        w2.create()
+
+        resp = self.client.delete(f"{BASE_URL}/{w2.id}/items/{item.id}")
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+
+        from service.models import Item
+
+        self.assertIsNotNone(Item.find(item.id))
 
     ######################################################################
     #  E R R O R   H A N D L E R   T E S T S

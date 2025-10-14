@@ -33,13 +33,26 @@ from service.common import status  # HTTP Status Codes
 @app.route("/")
 def index():
     """Root URL response"""
+    base = request.host_url.rstrip("/")
     return (
         jsonify(
             name="Wishlist Service",
             version="1.0.0",
             description="RESTful service for managing wishlists",
             paths={
-                "wishlists": "/wishlists",
+                # "wishlists": "/wishlists",
+                # ----------- Wishlist endpoints -----------
+                "list_all_wishlists": f"{base}/wishlists",
+                "create_wishlist": f"{base}/wishlists",
+                "get_wishlist": f"{base}/wishlists/{{wishlist_id}}",
+                "update_wishlist": f"{base}/wishlists/{{wishlist_id}}",
+                "delete_wishlist": f"{base}/wishlists/{{wishlist_id}}",
+                # ----------- Wishlist Item endpoints -----------
+                "list_wishlist_items": f"{base}/wishlists/{{wishlist_id}}/items",
+                "create_wishlist_item": f"{base}/wishlists/{{wishlist_id}}/items",
+                "get_wishlist_item": f"{base}/wishlists/{{wishlist_id}}/items/{{item_id}}",
+                "update_wishlist_item": f"{base}/wishlists/{{wishlist_id}}/items/{{item_id}}",
+                "delete_wishlist_item": f"{base}/wishlists/{{wishlist_id}}/items/{{item_id}}",
             },
         ),
         status.HTTP_200_OK,
@@ -49,7 +62,6 @@ def index():
 ######################################################################
 #  R E S T   A P I   E N D P O I N T S
 ######################################################################
-# Todo: Place your REST API code here ...
 
 
 ######################################################################
@@ -147,6 +159,7 @@ def add_wishlist_item(wishlist_id: int):
 # CREATE A NEW WISHLIST
 ######################################################################
 
+
 @app.route("/wishlists", methods=["POST"])
 def create_wishlists():
     """
@@ -164,7 +177,6 @@ def create_wishlists():
     # Create a message to return
     message = wishlist.serialize()
 
-    # Todo: uncomment this code when get_wishlists is implemented
     location_url = url_for("get_wishlists", wishlist_id=wishlist.id, _external=True)
     # location_url = "unknown"
 
@@ -181,14 +193,43 @@ def delete_wishlists(wishlist_id: int):
     app.logger.info("Request to delete Wishlist with id [%s]", wishlist_id)
 
     wishlist = Wishlist.find(wishlist_id)
-    if wishlist is None:
-        abort(
-            status.HTTP_404_NOT_FOUND,
-            f"Wishlist with id '{wishlist_id}' was not found.",
+    # if wishlist is None:
+    #     abort(
+    #         status.HTTP_404_NOT_FOUND,
+    #         f"Wishlist with id '{wishlist_id}' was not found.",
+    #     )
+    if wishlist:
+        wishlist.delete()
+
+    app.logger.info("Wishlist with id [%s] deleted", wishlist_id)
+    return "", status.HTTP_204_NO_CONTENT
+
+
+######################################################################
+# DELETE A WISHLIST ITEM
+######################################################################
+@app.route("/wishlists/<int:wishlist_id>/items/<int:item_id>", methods=["DELETE"])
+def delete_wishlist_items(wishlist_id: int, item_id: int):
+    """
+    Idempotently delete an Item from a Wishlist.
+    Always return 204, even if the item does not exist or does not belong to the wishlist.
+    """
+    app.logger.info(
+        "Request to delete Item [%s] from Wishlist [%s]", item_id, wishlist_id
+    )
+
+    item = Item.find(item_id)
+
+    if item and item.wishlist_id == wishlist_id:
+        item.delete()
+        app.logger.info("Item [%s] deleted from Wishlist [%s]", item_id, wishlist_id)
+    else:
+        app.logger.info(
+            "Item [%s] not present in Wishlist [%s]; returning 204 (idempotent)",
+            item_id,
+            wishlist_id,
         )
 
-    wishlist.delete()
-    app.logger.info("Wishlist with id [%s] deleted", wishlist_id)
     return "", status.HTTP_204_NO_CONTENT
 
 
@@ -264,7 +305,7 @@ def list_wishlists():
     # Process the query string if any
     customer_id = request.args.get("customer_id")
     if customer_id:
-        wishlists = Wishlist.find_by_name(customer_id)
+        wishlists = Wishlist.find_by_customer(customer_id)
     else:
         wishlists = Wishlist.all()
 
