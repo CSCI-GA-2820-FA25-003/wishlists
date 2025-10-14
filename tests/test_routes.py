@@ -279,6 +279,13 @@ class TestWishlistService(TestCase):
     ######################################################################
     #  I T E M   T E S T   C A S E S
     ######################################################################
+    def test_list_items_on_empty_wishlist(self):
+        """It should Get an empty list of Items for an empty Wishlist"""
+        wishlist = self._create_wishlists(1)[0]
+        resp = self.client.get(f"{BASE_URL}/{wishlist.id}/items")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        data = resp.get_json()
+        self.assertEqual(len(data), 0)
 
     def test_get_wishlist_item(self):
         """It should Get a single Item from a Wishlist"""

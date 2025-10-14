@@ -65,6 +65,28 @@ def index():
 
 
 ######################################################################
+# LIST ITEM
+######################################################################
+@app.route("/wishlists/<int:wishlist_id>/items", methods=["GET"])
+def list_wishlist_item(wishlist_id: int):
+    """Returns all of the Item for an Wishlists"""
+    app.logger.info("Request for all Addresses for Account with id: %s", wishlist_id)
+
+    # See if the account exists and abort if it doesn't
+    wishlist = Wishlist.find(wishlist_id)
+    if not wishlist:
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Wishlist with id '{wishlist}' could not be found.",
+        )
+
+    # Get the addresses for the account
+    results = [item.serialize() for item in wishlist.items]
+
+    return jsonify(results), status.HTTP_200_OK
+
+
+######################################################################
 # ADD AN ITEM TO A WISHLIST
 ######################################################################
 @app.route("/wishlists/<int:wishlist_id>/items", methods=["POST"])
