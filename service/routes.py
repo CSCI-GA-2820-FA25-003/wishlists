@@ -316,6 +316,46 @@ def get_wishlist_items(wishlist_id, item_id):
 
 
 ######################################################################
+# UPDATE A WISHLIST ITEM
+######################################################################
+@app.route("/wishlists/<int:wishlist_id>/items/<int:item_id>", methods=["PUT"])
+def update_wishlist_items(wishlist_id, item_id):
+    """
+    Update a Wishlist Item
+    This endpoint will update an Item in a Wishlist
+    """
+    app.logger.info("Request to update Item %s in Wishlist %s", item_id, wishlist_id)
+    check_content_type("application/json")
+
+    # First check if the wishlist exists
+    wishlist = Wishlist.find(wishlist_id)
+    if not wishlist:
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Wishlist with id '{wishlist_id}' was not found.",
+        )
+
+    # Then check if the item exists
+    item = Item.find(item_id)
+    if not item:
+        abort(status.HTTP_404_NOT_FOUND, f"Item with id '{item_id}' was not found.")
+
+    # Verify the item belongs to this wishlist
+    if item.wishlist_id != wishlist_id:
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Item with id '{item_id}' was not found in Wishlist '{wishlist_id}'.",
+        )
+
+    # Update the item with the request data
+    item.deserialize(request.get_json())
+    item.update()
+
+    app.logger.info("Item with id [%s] updated.", item.id)
+    return jsonify(item.serialize()), status.HTTP_200_OK
+
+
+######################################################################
 # LIST ALL wishlists
 ######################################################################
 @app.route("/wishlists", methods=["GET"])
