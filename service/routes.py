@@ -377,6 +377,36 @@ def list_wishlists():
     return jsonify(results), status.HTTP_200_OK
 
 
+#################################################################
+# UPDATE A WISHLIST
+######################################################################
+@app.route("/wishlists/<int:wishlist_id>", methods=["PUT"])
+def update_wishlists(wishlist_id: int):
+    check_content_type("application/json")
+
+    # Check exist
+    wishlist = Wishlist.find(wishlist_id)
+    if not wishlist:
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Wishlist with id '{wishlist_id}' was not found.",
+        )
+
+    # Check Ownership
+    if request.headers.get("X-Customer-Id") != wishlist.customer_id:
+        abort(status.HTTP_403_FORBIDDEN, "You do not own this wishlist")
+
+    # Partial Updates
+    data = request.get_json() or {}
+    if "name" in data:
+        wishlist.name = data["name"]
+    if "description" in data:
+        wishlist.description = data["description"]
+
+    wishlist.update()
+    return jsonify(wishlist.serialize()), status.HTTP_200_OK
+
+
 ######################################################################
 #  U T I L I T Y   F U N C T I O N S
 ######################################################################
