@@ -23,7 +23,8 @@ from unittest import TestCase
 from wsgi import app
 from tests.factories import WishlistFactory, ItemFactory
 from service.common import status
-from service.models import db, Wishlist
+from service.models import db, Wishlist, Item
+from service.common.error_handlers import forbidden, internal_server_error
 
 
 DATABASE_URI = os.getenv(
@@ -35,7 +36,7 @@ BASE_URL = "/wishlists"
 ######################################################################
 #  T E S T   C A S E S
 ######################################################################
-class TestWishlistService(TestCase):
+class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
     """Wishlist Service Tests"""
 
     @classmethod
@@ -277,6 +278,7 @@ class TestWishlistService(TestCase):
         self.assertIn("was not found", data["message"])
 
     def test_update_wishlist_success(self):
+        """It should successfully update an existing wishlist's name and return 200 OK."""
         created = self._create_wishlists(1)[0]
         wishlist_id = created.id
         owner_id = created.customer_id
@@ -500,8 +502,6 @@ class TestWishlistService(TestCase):
         self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(resp.data, b"")
 
-        from service.models import Item
-
         self.assertIsNone(Item.find(item.id))
 
     def test_delete_wishlist_item_not_found(self):
@@ -524,8 +524,6 @@ class TestWishlistService(TestCase):
 
         resp = self.client.delete(f"{BASE_URL}/{w2.id}/items/{item.id}")
         self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
-
-        from service.models import Item
 
         self.assertIsNotNone(Item.find(item.id))
 
@@ -627,7 +625,6 @@ class TestWishlistService(TestCase):
 
     def test_error_handler_forbidden(self):
         """It should return a JSON 403 response from the forbidden error handler"""
-        from service.common.error_handlers import forbidden
 
         resp, code = forbidden(Exception("forbidden test"))
         self.assertEqual(code, status.HTTP_403_FORBIDDEN)
@@ -638,7 +635,6 @@ class TestWishlistService(TestCase):
 
     def test_error_handler_internal_server_error(self):
         """It should return a JSON 500 response from the internal server error handler"""
-        from service.common.error_handlers import internal_server_error
 
         resp, code = internal_server_error(Exception("boom"))
         self.assertEqual(code, status.HTTP_500_INTERNAL_SERVER_ERROR)

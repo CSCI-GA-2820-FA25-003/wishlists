@@ -10,6 +10,7 @@ from wsgi import app
 from service.models import Item, Wishlist, DataValidationError, db
 from tests.factories import WishlistFactory, ItemFactory
 
+# pylint: disable=duplicate-code
 DATABASE_URI = os.getenv(
     "DATABASE_URI", "postgresql+psycopg://postgres:postgres@localhost:5432/postgres"
 )
@@ -18,7 +19,7 @@ DATABASE_URI = os.getenv(
 ######################################################################
 #        W I S H L I S T   M O D E L   T E S T   C A S E S
 ######################################################################
-class TestWishlist(TestCase):
+class TestWishlist(TestCase):  # pylint: disable=too-many-public-methods
     """Wishlist Model Test Cases"""
 
     @classmethod
@@ -222,7 +223,9 @@ class TestWishlist(TestCase):
     def test_deserialize_wishlist_attribute_error(self):
         """It should raise DataValidationError on AttributeError in deserialize"""
 
-        class FakeMapping:
+        class FakeMapping:  # pylint: disable=too-few-public-methods
+            """Minimal mapping used to trigger AttributeError in Wishlist.deserialize."""
+
             def __getitem__(self, key):
                 if key == "customer_id":
                     return "User0001"

@@ -4,10 +4,10 @@ Test Factory to make fake objects for testing
 
 from datetime import datetime
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 from factory import Factory, SubFactory, Sequence, Faker, post_generation, LazyAttribute
 from factory.fuzzy import FuzzyDateTime
 from service.models import Wishlist, Item
-from zoneinfo import ZoneInfo
 
 
 class WishlistFactory(Factory):
