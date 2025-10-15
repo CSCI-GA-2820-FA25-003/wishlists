@@ -276,6 +276,47 @@ class TestWishlistService(TestCase):
         logging.debug("Response data = %s", data)
         self.assertIn("was not found", data["message"])
 
+    def test_update_wishlist_success(self):
+        created = self._create_wishlists(1)[0]
+        wishlist_id = created.id
+        owner_id = created.customer_id
+
+        # Update Name
+        resp = self.client.put(
+            f"{BASE_URL}/{wishlist_id}",
+            json={"name": "Holiday Gifts"},
+            headers={"X-Customer-Id": owner_id},
+        )
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        body = resp.get_json()
+        self.assertEqual(body["id"], wishlist_id)
+        self.assertEqual(body["customer_id"], owner_id)
+        self.assertEqual(body["name"], "Holiday Gifts")
+
+    def test_update_wishlist_not_found(self):
+        """It should return 404 Not Found when wishlist does not exist"""
+        resp = self.client.put(
+            f"{BASE_URL}/0",
+            json={"name": "Holiday Gifts"},
+            headers={"X-Customer-Id": "User0001"},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+        body = resp.get_json()
+        self.assertIn("not found", body.get("message", "").lower())
+
+    def test_update_wishlist_forbidden(self):
+        """It should return 403 Forbidden when a non-owner tries to update"""
+        created = self._create_wishlists(1)[0]
+        wishlist_id = created.id
+
+        resp = self.client.put(
+            f"{BASE_URL}/{wishlist_id}",
+            json={"name": "Nope"},
+            headers={"X-Customer-Id": "IntruderB"},  # not the owner
+        )
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
     ######################################################################
     #  I T E M   T E S T   C A S E S
     ######################################################################
