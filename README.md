@@ -25,14 +25,13 @@ Make sure you have installed:
 
 Follow these steps to clone the repository, start the development environment, and run the API.
 
-1. Clone the Respository
+1. Clone the Repository
 ```
 git clone https://github.com/CSCI-GA-2820-FA25-003/wishlists.git
 cd wishlists
 ```
 
 2. Open in VS Code and Reopen in Container
-When ready, start the service:
 When ready, start the service:
 
 ```bash
@@ -43,17 +42,20 @@ Service will run at http://localhost:8080/
 
 ## API Documents
 
-| **Method** | **Endpoint**               | **Purpose / Description**                         |
-| :-------------- | :------------------------- | :------------------------------------------------ |
-| **GET**         | `/wishlists`               | Get a list of all wishlists of a customer          |
-| **POST**        | `/wishlists`               | Create a new wishlist for a customer        |
-| **PUT**         | `/wishlists/{wishlist_id}` | Update the attributes of an existing wishlist |
-| **DELETE**      | `/wishlists/{wishlist_id}` | Delete a wishlist                    |
-| **GET**         | `/wishlists/{wishlist_id}/items`           | Get all items of a specific wishlist |
-| **GET**         | `/wishlists/{wishlist_id}/items/{item_id}` | Get one specific item from a wishlist    |
-| **POST**        | `/wishlists/{wishlist_id}/items`           | Add a new item to a wishlist                  |
-| **PUT**         | `/wishlists/{wishlist_id}/items/{item_id}` | Update details of an existing item            |
-| **DELETE**      | `/wishlists/{wishlist_id}/items/{item_id}` | Remove an item from a wishlist                |
+| **Method** | **Endpoint**                               | **Purpose / Description**                                         |
+| :--------- | :----------------------------------------- | :---------------------------------------------------------------- |
+| **GET** | / | Get service metadata (root endpoint) |
+| **GET**    | `/wishlists`                               | Get a list of all wishlists of a customer                         |
+| **GET**    | `/wishlists/{wishlist_id}`                 | Get details of a specific wishlist                                |
+| **POST**   | `/wishlists`                               | Create a new wishlist for a customer                              |
+| **PUT**    | `/wishlists/{wishlist_id}`                 | Update the attributes (name, description) of an existing wishlist |
+| **DELETE** | `/wishlists/{wishlist_id}`                 | Delete a wishlist                                                 |
+| **GET**    | `/wishlists/{wishlist_id}/items`           | Get all items of a specific wishlist                              |
+| **GET**    | `/wishlists/{wishlist_id}/items/{item_id}` | Get one specific item from a wishlist                             |
+| **POST**   | `/wishlists/{wishlist_id}/items`           | Add a new item to a wishlist                                      |
+| **PUT**    | `/wishlists/{wishlist_id}/items/{item_id}` | Update details of an existing item                                |
+| **DELETE** | `/wishlists/{wishlist_id}/items/{item_id}` | Remove an item from a wishlist                                    |
+
 
 **Sample Commands**
   
@@ -65,12 +67,12 @@ curl -X POST \
   http://localhost:8080/wishlists
 ```
 
-2. Get all wishlists
+1. Get all wishlists
 ```
 curl -X GET http://localhost:8080/wishlists
 ```
 
-3. Update a wishlist
+1. Update a wishlist
 ```
 curl -X PUT \
   -H "Content-Type: application/json" \
@@ -79,12 +81,12 @@ curl -X PUT \
   http://localhost:8080/wishlists/1
 ```
 
-4. Delete a wishlist
+1. Delete a wishlist
 ```
 curl -X DELETE http://localhost:8080/wishlists/1
 ```
 
-5. Add an item to a wishlist
+1. Add an item to a wishlist
 ```
 curl -X POST \
   -H "Content-Type: application/json" \
@@ -92,12 +94,12 @@ curl -X POST \
   http://localhost:8080/wishlists/1/items
 ```
 
-6. Get all items in a wishlist
+1. Get all items in a wishlist
 ```
 curl -X GET http://localhost:8080/wishlists/1/items
 ```
 
-7. Update an item
+1. Update an item
 ```
 curl -X PUT \
   -H "Content-Type: application/json" \
@@ -105,9 +107,19 @@ curl -X PUT \
   http://localhost:8080/wishlists/1/items/2
 ```
 
-8. Delete an item
+1. Delete an item
 ```
 curl -X DELETE http://localhost:8080/wishlists/1/items/2
+```
+
+1. Get a single item from a wishlist
+```
+curl -X GET http://localhost:8080/wishlists/1/items/2
+```
+
+1.  Get a single wishlist
+```
+curl -X GET http://localhost:8080/wishlists/1
 ```
 
 ## Testing Instructions
@@ -165,16 +177,21 @@ dot-env-example     - copy to .env to use environment variables
 pyproject.toml      - Poetry list of Python libraries required by your code
 
 
-service/                   - service python package
-├── __init__.py            - package initializer
-├── config.py              - configuration parameters
-├── models.py              - module with business models
-├── routes.py              - module with service routes
-└── common                 - common code package
-    ├── cli_commands.py    - Flask command to recreate all tables
-    ├── error_handlers.py  - HTTP error handling code
-    ├── log_handlers.py    - logging setup code
-    └── status.py          - HTTP status constants
+service/                    - main service package
+├── __init__.py             - package initializer
+├── config.py               - configuration parameters
+├── routes.py               - Flask route definitions for all endpoints
+├── models/                 - package containing data models
+│   ├── __init__.py         - model package initializer
+│   ├── persistent_base.py  - base model with shared DB logic
+│   ├── wishlist.py         - Wishlist model class
+│   └── item.py             - Item model class
+│
+└── common/                 - common utilities package
+    ├── cli_commands.py     - Flask CLI command to recreate all tables
+    ├── error_handlers.py   - HTTP error handling code
+    ├── log_handlers.py     - logging setup code
+    └── status.py           - HTTP status constants
 
 tests/                     - test cases package
 ├── __init__.py            - package initializer
