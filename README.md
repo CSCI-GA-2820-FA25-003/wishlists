@@ -67,12 +67,12 @@ curl -X POST \
   http://localhost:8080/wishlists
 ```
 
-1. Get all wishlists
+2. Get all wishlists
 ```
 curl -X GET http://localhost:8080/wishlists
 ```
 
-1. Update a wishlist
+3. Update a wishlist
 ```
 curl -X PUT \
   -H "Content-Type: application/json" \
@@ -81,12 +81,12 @@ curl -X PUT \
   http://localhost:8080/wishlists/1
 ```
 
-1. Delete a wishlist
+4. Delete a wishlist
 ```
 curl -X DELETE http://localhost:8080/wishlists/1
 ```
 
-1. Add an item to a wishlist
+5. Add an item to a wishlist
 ```
 curl -X POST \
   -H "Content-Type: application/json" \
@@ -94,12 +94,12 @@ curl -X POST \
   http://localhost:8080/wishlists/1/items
 ```
 
-1. Get all items in a wishlist
+6. Get all items in a wishlist
 ```
 curl -X GET http://localhost:8080/wishlists/1/items
 ```
 
-1. Update an item
+7. Update an item
 ```
 curl -X PUT \
   -H "Content-Type: application/json" \
@@ -107,17 +107,17 @@ curl -X PUT \
   http://localhost:8080/wishlists/1/items/2
 ```
 
-1. Delete an item
+8. Delete an item
 ```
 curl -X DELETE http://localhost:8080/wishlists/1/items/2
 ```
 
-1. Get a single item from a wishlist
+9. Get a single item from a wishlist
 ```
 curl -X GET http://localhost:8080/wishlists/1/items/2
 ```
 
-1.  Get a single wishlist
+10.  Get a single wishlist
 ```
 curl -X GET http://localhost:8080/wishlists/1
 ```
