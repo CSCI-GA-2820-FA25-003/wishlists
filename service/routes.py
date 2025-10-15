@@ -154,12 +154,22 @@ def add_wishlist_item(wishlist_id: int):
         )
 
     # Create and persist the item
-    item = Item(
-        wishlist_id=wishlist.id,
-        customer_id=wishlist.customer_id,
-        product_id=product_id,
-        product_name=product_name,
-        prices=price_val,
+    # item = Item(
+    #     wishlist_id=wishlist.id,
+    #     customer_id=wishlist.customer_id,
+    #     product_id=product_id,
+    #     product_name=product_name,
+    #     prices=price_val,
+    # )
+    item = Item()
+    item.deserialize(
+        {
+            "wishlist_id": wishlist.id,
+            "customer_id": wishlist.customer_id,
+            "product_id": product_id,
+            "product_name": product_name,
+            "prices": price_val,
+        }
     )
     item.create()
 
@@ -382,6 +392,7 @@ def list_wishlists():
 ######################################################################
 @app.route("/wishlists/<int:wishlist_id>", methods=["PUT"])
 def update_wishlists(wishlist_id: int):
+    """Updates an existing wishlist's name or description and returns 200 OK."""
     check_content_type("application/json")
 
     # Check exist

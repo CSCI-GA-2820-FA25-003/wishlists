@@ -17,6 +17,7 @@
 """
 Persistent Base class for database CRUD functions
 """
+# pylint: disable=duplicate-code
 
 import logging
 

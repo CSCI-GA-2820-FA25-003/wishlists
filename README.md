@@ -103,7 +103,14 @@ curl -X GET http://localhost:8080/wishlists/1/items
 ```
 curl -X PUT \
   -H "Content-Type: application/json" \
-  -d '{"product_name": "Headphones V2", "price": 249.99}' \
+  -d '{
+    "wishlist_id": 1,
+    "customer_id": "User0001",
+    "product_id": 123456,
+    "product_name": "Headphones V2",
+    "prices": 249.99,
+    "wish_date": "2025-10-15T12:00:00-04:00"
+  }' \
   http://localhost:8080/wishlists/1/items/2
 ```
 
