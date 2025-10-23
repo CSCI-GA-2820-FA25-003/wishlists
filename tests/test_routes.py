@@ -619,6 +619,67 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         data = response.get_json()
         self.assertIn("was not found in Wishlist", data["message"])
 
+    def test_clear_wishlist_with_items(self):
+        """Scenario: Clear all items from an existing wishlist -> 204 and items become empty"""
+        # Given: a wishlist with 3 items
+        wishlist = self._create_wishlists(1)[0]
+        wid = wishlist.id
+
+        # Create three distinct items via API to exercise full stack
+        for i in range(3):
+            payload = {
+                "product_id": 1000 + i,  # ensure uniqueness per uq constraint
+                "product_name": f"p-{i}",
+                "price": 9.99 + i,
+            }
+            resp = self.client.post(
+                f"{BASE_URL}/{wid}/items",
+                json=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "X-User-Id": wishlist.customer_id,
+                },
+            )
+            self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+
+        # When: clear
+        resp = self.client.put(f"{BASE_URL}/{wid}/clear")
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+
+        # Then: items list is empty
+        resp = self.client.get(f"{BASE_URL}/{wid}/items")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.get_json(), [])
+
+        # And: wishlist itself still exists
+        resp = self.client.get(f"{BASE_URL}/{wid}")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+    def test_clear_already_empty_wishlist(self):
+        """Scenario: Clear an already empty wishlist -> 204, no error"""
+        wishlist = self._create_wishlists(1)[0]
+        wid = wishlist.id
+
+        # Sanity: empty
+        resp = self.client.get(f"{BASE_URL}/{wid}/items")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.get_json(), [])
+
+        # When: clear
+        resp = self.client.put(f"{BASE_URL}/{wid}/clear")
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+
+        # Idempotency: clearing again is still 204
+        resp = self.client.put(f"{BASE_URL}/{wid}/clear")
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_clear_nonexistent_wishlist(self):
+        """Scenario: Attempt to clear a non-existent wishlist -> 404 with message"""
+        resp = self.client.put(f"{BASE_URL}/999/clear")
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+        data = resp.get_json()
+        self.assertIn("was not found", data["message"].lower())
+
     ######################################################################
     #  E R R O R   H A N D L E R   T E S T S
     ######################################################################

@@ -418,6 +418,35 @@ def update_wishlists(wishlist_id: int):
     return jsonify(wishlist.serialize()), status.HTTP_200_OK
 
 
+#################################################################
+# CLEAR A WISHLIST
+#################################################################
+@app.route("/wishlists/<int:wishlist_id>/clear", methods=["PUT"])
+def clear_wishlist(wishlist_id: int):
+    """
+    Clear all items in the given Wishlist (idempotent).
+    Responses:
+        204 No Content: wishlist cleared successfully (even if it was already empty)
+        404 Not Found : wishlist does not exist
+    """
+    app.logger.info("Request to clear all items in Wishlist [%s]", wishlist_id)
+
+    wishlist = Wishlist.find(wishlist_id)
+    if not wishlist:
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Wishlist with id '{wishlist_id}' was not found.",
+        )
+
+    deleted = wishlist.clear_items()  # domain method commits the transaction
+    app.logger.info(
+        "Cleared %s item(s) from Wishlist [%s] (idempotent 204).",
+        deleted,
+        wishlist_id,
+    )
+    return "", status.HTTP_204_NO_CONTENT
+
+
 ######################################################################
 #  U T I L I T Y   F U N C T I O N S
 ######################################################################

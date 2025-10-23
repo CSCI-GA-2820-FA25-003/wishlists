@@ -147,3 +147,16 @@ class Wishlist(db.Model, PersistentBase):
         """Returns all Wishlists owned by a given customer"""
         logger.info("Processing customer query for %s ...", customer_id)
         return cls.query.filter(cls.customer_id == customer_id)
+
+    def clear_items(self) -> int:
+        """
+        Clear all Items under this Wishlist.
+        Idempotent: if there are no items, it still succeeds (deleting 0 rows).
+        Returns:
+            int: number of deleted rows (for logging/metrics).
+        """
+        deleted = Item.query.filter_by(wishlist_id=self.id).delete(
+            synchronize_session=False
+        )
+        db.session.commit()
+        return deleted
