@@ -23,7 +23,8 @@ from unittest import TestCase
 from wsgi import app
 from tests.factories import WishlistFactory, ItemFactory
 from service.common import status
-from service.models import db, Wishlist
+from service.models import db, Wishlist, Item
+from service.common.error_handlers import forbidden, internal_server_error
 
 
 DATABASE_URI = os.getenv(
@@ -35,7 +36,7 @@ BASE_URL = "/wishlists"
 ######################################################################
 #  T E S T   C A S E S
 ######################################################################
-class TestWishlistService(TestCase):
+class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
     """Wishlist Service Tests"""
 
     @classmethod
@@ -276,6 +277,48 @@ class TestWishlistService(TestCase):
         logging.debug("Response data = %s", data)
         self.assertIn("was not found", data["message"])
 
+    def test_update_wishlist_success(self):
+        """It should successfully update an existing wishlist's name and return 200 OK."""
+        created = self._create_wishlists(1)[0]
+        wishlist_id = created.id
+        owner_id = created.customer_id
+
+        # Update Name
+        resp = self.client.put(
+            f"{BASE_URL}/{wishlist_id}",
+            json={"name": "Holiday Gifts"},
+            headers={"X-Customer-Id": owner_id},
+        )
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        body = resp.get_json()
+        self.assertEqual(body["id"], wishlist_id)
+        self.assertEqual(body["customer_id"], owner_id)
+        self.assertEqual(body["name"], "Holiday Gifts")
+
+    def test_update_wishlist_not_found(self):
+        """It should return 404 Not Found when wishlist does not exist"""
+        resp = self.client.put(
+            f"{BASE_URL}/0",
+            json={"name": "Holiday Gifts"},
+            headers={"X-Customer-Id": "User0001"},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+        body = resp.get_json()
+        self.assertIn("not found", body.get("message", "").lower())
+
+    def test_update_wishlist_forbidden(self):
+        """It should return 403 Forbidden when a non-owner tries to update"""
+        created = self._create_wishlists(1)[0]
+        wishlist_id = created.id
+
+        resp = self.client.put(
+            f"{BASE_URL}/{wishlist_id}",
+            json={"name": "Nope"},
+            headers={"X-Customer-Id": "IntruderB"},  # not the owner
+        )
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
     ######################################################################
     #  I T E M   T E S T   C A S E S
     ######################################################################
@@ -459,8 +502,6 @@ class TestWishlistService(TestCase):
         self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(resp.data, b"")
 
-        from service.models import Item
-
         self.assertIsNone(Item.find(item.id))
 
     def test_delete_wishlist_item_not_found(self):
@@ -484,9 +525,160 @@ class TestWishlistService(TestCase):
         resp = self.client.delete(f"{BASE_URL}/{w2.id}/items/{item.id}")
         self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
 
-        from service.models import Item
-
         self.assertIsNotNone(Item.find(item.id))
+
+    def test_update_wishlist_item(self):
+        """It should Update an existing Item in a Wishlist"""
+        # Create a wishlist with an item
+        wishlist = WishlistFactory()
+        item = ItemFactory(wishlist=wishlist)
+        wishlist.items.append(item)
+        wishlist.create()
+
+        # Update the item
+        original_product_id = item.product_id
+        updated_data = item.serialize()
+        updated_data["product_id"] = 99999
+        updated_data["product_name"] = "Updated Product Name"
+
+        response = self.client.put(
+            f"{BASE_URL}/{wishlist.id}/items/{item.id}",
+            json=updated_data,
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Verify the update
+        data = response.get_json()
+        self.assertEqual(data["id"], item.id)
+        self.assertEqual(data["product_id"], 99999)
+        self.assertEqual(data["product_name"], "Updated Product Name")
+        self.assertNotEqual(data["product_id"], original_product_id)
+
+    def test_update_wishlist_item_not_found(self):
+        """It should not Update an Item that doesn't exist"""
+        # Create a wishlist without items
+        wishlist = self._create_wishlists(1)[0]
+
+        # Try to update non-existent item
+        updated_data = {
+            "wishlist_id": wishlist.id,
+            "customer_id": "User0001",
+            "product_id": 12345,
+            "product_name": "Test Product",
+            "prices": 29.99,
+        }
+
+        response = self.client.put(
+            f"{BASE_URL}/{wishlist.id}/items/0",
+            json=updated_data,
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        data = response.get_json()
+        self.assertIn("was not found", data["message"])
+
+    def test_update_item_wishlist_not_found(self):
+        """It should not Update an Item if Wishlist doesn't exist"""
+        updated_data = {
+            "wishlist_id": 0,
+            "customer_id": "User0001",
+            "product_id": 12345,
+            "product_name": "Test Product",
+            "prices": 29.99,
+        }
+
+        response = self.client.put(
+            f"{BASE_URL}/0/items/1", json=updated_data, content_type="application/json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        data = response.get_json()
+        self.assertIn("Wishlist", data["message"])
+
+    def test_update_item_wrong_wishlist(self):
+        """It should not Update an Item that belongs to a different Wishlist"""
+        # Create two wishlists with items
+        wishlist1 = WishlistFactory()
+        item1 = ItemFactory(wishlist=wishlist1)
+        wishlist1.items.append(item1)
+        wishlist1.create()
+
+        wishlist2 = WishlistFactory()
+        wishlist2.create()
+
+        # Try to update item1 using wishlist2's ID
+        updated_data = item1.serialize()
+        updated_data["product_id"] = 99999
+
+        response = self.client.put(
+            f"{BASE_URL}/{wishlist2.id}/items/{item1.id}",
+            json=updated_data,
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        data = response.get_json()
+        self.assertIn("was not found in Wishlist", data["message"])
+
+    def test_clear_wishlist_with_items(self):
+        """Scenario: Clear all items from an existing wishlist -> 204 and items become empty"""
+        # Given: a wishlist with 3 items
+        wishlist = self._create_wishlists(1)[0]
+        wid = wishlist.id
+
+        # Create three distinct items via API to exercise full stack
+        for i in range(3):
+            payload = {
+                "product_id": 1000 + i,  # ensure uniqueness per uq constraint
+                "product_name": f"p-{i}",
+                "price": 9.99 + i,
+            }
+            resp = self.client.post(
+                f"{BASE_URL}/{wid}/items",
+                json=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "X-User-Id": wishlist.customer_id,
+                },
+            )
+            self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+
+        # When: clear
+        resp = self.client.put(f"{BASE_URL}/{wid}/clear")
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+
+        # Then: items list is empty
+        resp = self.client.get(f"{BASE_URL}/{wid}/items")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.get_json(), [])
+
+        # And: wishlist itself still exists
+        resp = self.client.get(f"{BASE_URL}/{wid}")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+    def test_clear_already_empty_wishlist(self):
+        """Scenario: Clear an already empty wishlist -> 204, no error"""
+        wishlist = self._create_wishlists(1)[0]
+        wid = wishlist.id
+
+        # Sanity: empty
+        resp = self.client.get(f"{BASE_URL}/{wid}/items")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.get_json(), [])
+
+        # When: clear
+        resp = self.client.put(f"{BASE_URL}/{wid}/clear")
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+
+        # Idempotency: clearing again is still 204
+        resp = self.client.put(f"{BASE_URL}/{wid}/clear")
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_clear_nonexistent_wishlist(self):
+        """Scenario: Attempt to clear a non-existent wishlist -> 404 with message"""
+        resp = self.client.put(f"{BASE_URL}/999/clear")
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+        data = resp.get_json()
+        self.assertIn("was not found", data["message"].lower())
 
     ######################################################################
     #  E R R O R   H A N D L E R   T E S T S
@@ -494,7 +686,6 @@ class TestWishlistService(TestCase):
 
     def test_error_handler_forbidden(self):
         """It should return a JSON 403 response from the forbidden error handler"""
-        from service.common.error_handlers import forbidden
 
         resp, code = forbidden(Exception("forbidden test"))
         self.assertEqual(code, status.HTTP_403_FORBIDDEN)
@@ -505,7 +696,6 @@ class TestWishlistService(TestCase):
 
     def test_error_handler_internal_server_error(self):
         """It should return a JSON 500 response from the internal server error handler"""
-        from service.common.error_handlers import internal_server_error
 
         resp, code = internal_server_error(Exception("boom"))
         self.assertEqual(code, status.HTTP_500_INTERNAL_SERVER_ERROR)

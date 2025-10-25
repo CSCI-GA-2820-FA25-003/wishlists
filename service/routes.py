@@ -154,12 +154,22 @@ def add_wishlist_item(wishlist_id: int):
         )
 
     # Create and persist the item
-    item = Item(
-        wishlist_id=wishlist.id,
-        customer_id=wishlist.customer_id,
-        product_id=product_id,
-        product_name=product_name,
-        prices=price_val,
+    # item = Item(
+    #     wishlist_id=wishlist.id,
+    #     customer_id=wishlist.customer_id,
+    #     product_id=product_id,
+    #     product_name=product_name,
+    #     prices=price_val,
+    # )
+    item = Item()
+    item.deserialize(
+        {
+            "wishlist_id": wishlist.id,
+            "customer_id": wishlist.customer_id,
+            "product_id": product_id,
+            "product_name": product_name,
+            "prices": price_val,
+        }
     )
     item.create()
 
@@ -316,6 +326,46 @@ def get_wishlist_items(wishlist_id, item_id):
 
 
 ######################################################################
+# UPDATE A WISHLIST ITEM
+######################################################################
+@app.route("/wishlists/<int:wishlist_id>/items/<int:item_id>", methods=["PUT"])
+def update_wishlist_items(wishlist_id, item_id):
+    """
+    Update a Wishlist Item
+    This endpoint will update an Item in a Wishlist
+    """
+    app.logger.info("Request to update Item %s in Wishlist %s", item_id, wishlist_id)
+    check_content_type("application/json")
+
+    # First check if the wishlist exists
+    wishlist = Wishlist.find(wishlist_id)
+    if not wishlist:
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Wishlist with id '{wishlist_id}' was not found.",
+        )
+
+    # Then check if the item exists
+    item = Item.find(item_id)
+    if not item:
+        abort(status.HTTP_404_NOT_FOUND, f"Item with id '{item_id}' was not found.")
+
+    # Verify the item belongs to this wishlist
+    if item.wishlist_id != wishlist_id:
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Item with id '{item_id}' was not found in Wishlist '{wishlist_id}'.",
+        )
+
+    # Update the item with the request data
+    item.deserialize(request.get_json())
+    item.update()
+
+    app.logger.info("Item with id [%s] updated.", item.id)
+    return jsonify(item.serialize()), status.HTTP_200_OK
+
+
+######################################################################
 # LIST ALL wishlists
 ######################################################################
 @app.route("/wishlists", methods=["GET"])
@@ -347,6 +397,66 @@ def list_wishlists():
     results = [wishlist.serialize() for wishlist in wishlists]
 
     return jsonify(results), status.HTTP_200_OK
+
+
+#################################################################
+# UPDATE A WISHLIST
+######################################################################
+@app.route("/wishlists/<int:wishlist_id>", methods=["PUT"])
+def update_wishlists(wishlist_id: int):
+    """Updates an existing wishlist's name or description and returns 200 OK."""
+    check_content_type("application/json")
+
+    # Check exist
+    wishlist = Wishlist.find(wishlist_id)
+    if not wishlist:
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Wishlist with id '{wishlist_id}' was not found.",
+        )
+
+    # Check Ownership
+    if request.headers.get("X-Customer-Id") != wishlist.customer_id:
+        abort(status.HTTP_403_FORBIDDEN, "You do not own this wishlist")
+
+    # Partial Updates
+    data = request.get_json() or {}
+    if "name" in data:
+        wishlist.name = data["name"]
+    if "description" in data:
+        wishlist.description = data["description"]
+
+    wishlist.update()
+    return jsonify(wishlist.serialize()), status.HTTP_200_OK
+
+
+#################################################################
+# CLEAR A WISHLIST
+#################################################################
+@app.route("/wishlists/<int:wishlist_id>/clear", methods=["PUT"])
+def clear_wishlist(wishlist_id: int):
+    """
+    Clear all items in the given Wishlist (idempotent).
+    Responses:
+        204 No Content: wishlist cleared successfully (even if it was already empty)
+        404 Not Found : wishlist does not exist
+    """
+    app.logger.info("Request to clear all items in Wishlist [%s]", wishlist_id)
+
+    wishlist = Wishlist.find(wishlist_id)
+    if not wishlist:
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Wishlist with id '{wishlist_id}' was not found.",
+        )
+
+    deleted = wishlist.clear_items()  # domain method commits the transaction
+    app.logger.info(
+        "Cleared %s item(s) from Wishlist [%s] (idempotent 204).",
+        deleted,
+        wishlist_id,
+    )
+    return "", status.HTTP_204_NO_CONTENT
 
 
 ######################################################################

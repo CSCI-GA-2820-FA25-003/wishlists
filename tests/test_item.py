@@ -6,10 +6,10 @@ import logging
 import os
 from unittest import TestCase
 from wsgi import app
-from service.models import Item, Wishlist, db
+from service.models import Item, Wishlist, db, DataValidationError
 from tests.factories import WishlistFactory, ItemFactory
-from service.models import DataValidationError
 
+# pylint: disable=duplicate-code
 DATABASE_URI = os.getenv(
     "DATABASE_URI", "postgresql+psycopg://postgres:postgres@localhost:5432/postgres"
 )
@@ -178,7 +178,9 @@ class TestWishlist(TestCase):
     def test_item_deserialize_attribute_error(self):
         """It should raise DataValidationError on AttributeError in Item.deserialize"""
 
-        class FakeMapping:
+        class FakeMapping:  # pylint: disable=too-few-public-methods
+            """Minimal mapping to trigger AttributeError in Item.deserialize."""
+
             def __getitem__(self, key):
                 base = {
                     "wishlist_id": 101,

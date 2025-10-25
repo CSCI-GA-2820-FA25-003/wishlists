@@ -1,33 +1,175 @@
-# NYU DevOps Project Template
+# RESTful API Service for Wishlists
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python](https://img.shields.io/badge/Language-Python-blue.svg)](https://python.org/)
 
-This is a skeleton you can use to start your projects.
+This is a documentation for API usage on Wishlists.
 
-**Note:** _Feel free to overwrite this `README.md` file with the one that describes your project._
+## Service Overview
 
-## Overview
+This is a Flask-based RESTful API for managing customer **wishlists** and their items. It supports basic CRUD operations for wishlists and nested CRUD operations for items.
 
-This project template contains starter code for your class project. The `/service` folder contains your `models.py` file for your model and a `routes.py` file for your service. The `/tests` folder has test case starter code for testing the model and the service separately. All you need to do is add your functionality. You can use the [lab-flask-tdd](https://github.com/nyu-devops/lab-flask-tdd) for code examples to copy from.
+## Prerequisites
 
-## Automatic Setup
+It is recommended to run this project in a Dev Container for consistent dependencies.
 
-The best way to use this repo is to start your own repo using it as a git template. To do this just press the green **Use this template** button in GitHub and this will become the source for your repository.
+Make sure you have installed:
 
-## Manual Setup
+* Docker
 
-You can also clone this repository and then copy and paste the starter code into your project repo folder on your local computer. Be careful not to copy over your own `README.md` file so be selective in what you copy.
+* VS Code
 
-There are 4 hidden files that you will need to copy manually if you use the Mac Finder or Windows Explorer to copy files from this folder into your repo folder.
+* Dev Containers extension
 
-These should be copied using a bash shell as follows:
+## Getting Started
+
+Follow these steps to clone the repository, start the development environment, and run the API.
+
+1. Clone the Repository
+```
+git clone https://github.com/CSCI-GA-2820-FA25-003/wishlists.git
+cd wishlists
+```
+
+2. Open in VS Code and Reopen in Container
+When ready, start the service:
 
 ```bash
-    cp .gitignore  ../<your_repo_folder>/
-    cp .flaskenv ../<your_repo_folder>/
-    cp .gitattributes ../<your_repo_folder>/
+honcho start
 ```
+
+Service will run at http://localhost:8080/
+
+## API Documents
+
+| **Method** | **Endpoint**                               | **Purpose / Description**                                         |
+| :--------- | :----------------------------------------- | :---------------------------------------------------------------- |
+| **GET** | / | Get service metadata (root endpoint) |
+| **GET**    | `/wishlists`                               | Get a list of all wishlists of a customer                         |
+| **GET**    | `/wishlists/{wishlist_id}`                 | Get details of a specific wishlist                                |
+| **POST**   | `/wishlists`                               | Create a new wishlist for a customer                              |
+| **PUT**    | `/wishlists/{wishlist_id}`                 | Update the attributes (name, description) of an existing wishlist |
+| **DELETE** | `/wishlists/{wishlist_id}`                 | Delete a wishlist                                                 |
+| **GET**    | `/wishlists/{wishlist_id}/items`           | Get all items of a specific wishlist                              |
+| **GET**    | `/wishlists/{wishlist_id}/items/{item_id}` | Get one specific item from a wishlist                             |
+| **POST**   | `/wishlists/{wishlist_id}/items`           | Add a new item to a wishlist                                      |
+| **PUT**    | `/wishlists/{wishlist_id}/items/{item_id}` | Update details of an existing item                                |
+| **DELETE** | `/wishlists/{wishlist_id}/items/{item_id}` | Remove an item from a wishlist                                    |
+
+
+**Sample Commands**
+  
+1. Create a wishlist
+```
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"customer_id": "User001", "name": "Holiday Gifts", "description": "Winter wishlist"}' \
+  http://localhost:8080/wishlists
+```
+
+2. Get all wishlists
+```
+curl -X GET http://localhost:8080/wishlists
+```
+
+3. Update a wishlist
+```
+curl -X PUT \
+  -H "Content-Type: application/json" \
+  -H "X-Customer-Id: User001" \
+  -d '{"name": "Holiday Gifts Updated"}' \
+  http://localhost:8080/wishlists/1
+```
+
+4. Delete a wishlist
+```
+curl -X DELETE http://localhost:8080/wishlists/1
+```
+
+5. Add an item to a wishlist
+```
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"product_id": 123, "product_name": "Noise Cancelling Headphones", "price": 299.99}' \
+  http://localhost:8080/wishlists/1/items
+```
+
+6. Get all items in a wishlist
+```
+curl -X GET http://localhost:8080/wishlists/1/items
+```
+
+7. Update an item
+```
+curl -X PUT \
+  -H "Content-Type: application/json" \
+  -d '{
+    "wishlist_id": 1,
+    "customer_id": "User0001",
+    "product_id": 123456,
+    "product_name": "Headphones V2",
+    "prices": 249.99,
+    "wish_date": "2025-10-15T12:00:00-04:00"
+  }' \
+  http://localhost:8080/wishlists/1/items/2
+```
+
+8. Delete an item
+```
+curl -X DELETE http://localhost:8080/wishlists/1/items/2
+```
+
+9. Get a single item from a wishlist
+```
+curl -X GET http://localhost:8080/wishlists/1/items/2
+```
+
+10.  Get a single wishlist
+```
+curl -X GET http://localhost:8080/wishlists/1
+```
+
+## Testing Instructions
+
+Run the tests by:
+
+```
+pytest -q
+```
+
+Expected coverage: ≥ 95%
+
+## Development Workflow
+
+1. Create a feature branch
+
+```
+git checkout -b feature/<task-name>
+```
+
+2. Commit and push changes
+
+```
+git add .
+git commit -m "feat: <short description>"
+git push origin feature/<task-name>
+```
+
+3. Open a Pull Request on GitHub
+
+* Link the related issue (Issue #<number>)
+
+* Wait for code review before merging and closing
+
+
+## Troubleshooting 
+
+| Problem                      | Likely Cause                | Solution                                  |
+| ---------------------------- | --------------------------- | ----------------------------------------- |
+| `415 Unsupported Type` | Missing JSON header         | Add `-H "Content-Type: application/json"` |
+| `403 Forbidden`              | Wrong customer ID header    | Use correct `X-Customer-Id`               |
+| `404 Not Found`              | Invalid wishlist or item ID | Check existing IDs via list endpoints     |
+
 
 ## Contents
 
@@ -41,23 +183,30 @@ The project contains the following:
 dot-env-example     - copy to .env to use environment variables
 pyproject.toml      - Poetry list of Python libraries required by your code
 
-service/                   - service python package
-├── __init__.py            - package initializer
-├── config.py              - configuration parameters
-├── models.py              - module with business models
-├── routes.py              - module with service routes
-└── common                 - common code package
-    ├── cli_commands.py    - Flask command to recreate all tables
-    ├── error_handlers.py  - HTTP error handling code
-    ├── log_handlers.py    - logging setup code
-    └── status.py          - HTTP status constants
+
+service/                    - main service package
+├── __init__.py             - package initializer
+├── config.py               - configuration parameters
+├── routes.py               - Flask route definitions for all endpoints
+├── models/                 - package containing data models
+│   ├── __init__.py         - model package initializer
+│   ├── persistent_base.py  - base model with shared DB logic
+│   ├── wishlist.py         - Wishlist model class
+│   └── item.py             - Item model class
+│
+└── common/                 - common utilities package
+    ├── cli_commands.py     - Flask CLI command to recreate all tables
+    ├── error_handlers.py   - HTTP error handling code
+    ├── log_handlers.py     - logging setup code
+    └── status.py           - HTTP status constants
 
 tests/                     - test cases package
 ├── __init__.py            - package initializer
 ├── factories.py           - Factory for testing with fake objects
 ├── test_cli_commands.py   - test suite for the CLI
 ├── test_models.py         - test suite for business models
-└── test_routes.py         - test suite for service routes
+├── test_routes.py         - test suite for service routes
+└── test_wishlist.py       - test suite for wishlist features
 ```
 
 ## License
