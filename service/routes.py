@@ -322,13 +322,25 @@ def get_wishlist_items(wishlist_id, item_id):
 def list_wishlists():
     """Returns all of the Accounts"""
     app.logger.info("Request for Wishlists list")
+    # to examine query parameters
+    allowed_params = ["customer_id"]
+    query_params = request.args.keys()
+    for param in query_params:
+        if param not in allowed_params:
+            app.logger.warning("Invalid query parameter: %s", param)
+            return abort(
+                status.HTTP_400_BAD_REQUEST, f"Invalid query parameter: {param}"
+            )
+
     wishlists = []
 
     # Process the query string if any
     customer_id = request.args.get("customer_id")
     if customer_id:
+        app.logger.info("Filtering by customer_id: %s", customer_id)
         wishlists = Wishlist.find_by_customer(customer_id)
     else:
+        app.logger.info("Return all wishlists")
         wishlists = Wishlist.all()
 
     # Return as an array of dictionaries
