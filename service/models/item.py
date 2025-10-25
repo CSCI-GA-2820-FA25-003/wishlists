@@ -21,8 +21,9 @@ Persistent Base class for database CRUD functions
 
 import logging
 from decimal import Decimal
-from .persistent_base import db, PersistentBase, DataValidationError
 from datetime import datetime
+from .persistent_base import db, PersistentBase, DataValidationError
+
 
 logger = logging.getLogger("flask.app")
 
