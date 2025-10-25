@@ -117,19 +117,18 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
     #  H E L P E R   M E T H O D S
     ######################################################################
 
-    def _create_wishlists(self, count):
-        """Factory method to create wishlists in bulk"""
+    def _create_wishlists(self, count, customer_id=None):
+        """
+        Factory method to create wishlists in bulk directly in the database
+        """
         wishlists = []
         for _ in range(count):
-            wishlist = WishlistFactory()
-            resp = self.client.post(BASE_URL, json=wishlist.serialize())
-            self.assertEqual(
-                resp.status_code,
-                status.HTTP_201_CREATED,
-                "Could not create test Wishlist",
-            )
-            new_wishlist = resp.get_json()
-            wishlist.id = new_wishlist["id"]
+            if customer_id:
+                wishlist = WishlistFactory(customer_id=customer_id)
+            else:
+                wishlist = WishlistFactory()
+
+            wishlist.create()  #
             wishlists.append(wishlist)
         return wishlists
 
@@ -679,6 +678,19 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
         data = resp.get_json()
         self.assertIn("was not found", data["message"].lower())
+
+    def test_query_wishlist_by_customer_id(self):
+        """It should Query wishlists by customer_id"""
+
+        self._create_wishlists(count=2, customer_id="CUST001")
+        self._create_wishlists(count=1, customer_id="CUST999")
+
+        resp = self.client.get(BASE_URL, query_string="customer_id=CUST001")  #
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        data = resp.get_json()
+        self.assertEqual(len(data), 2)
+        self.assertEqual(data[0]["customer_id"], "CUST001")
 
     ######################################################################
     #  E R R O R   H A N D L E R   T E S T S
