@@ -703,3 +703,21 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         self.assertEqual(data["status"], status.HTTP_500_INTERNAL_SERVER_ERROR)
         self.assertEqual(data["error"], "Internal Server Error")
         self.assertIn("boom", data["message"])
+
+    def test_add_item_with_invalid_price(self):
+        """It should return 400 when adding an item with invalid price"""
+        wishlist = self._create_wishlists(1)[0]
+        payload = {"product_id": 1, "product_name": "Test", "price": "not-a-number"}
+
+        resp = self.client.post(
+            f"{BASE_URL}/{wishlist.id}/items",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    # 2.
+    def test_query_with_invalid_parameter(self):
+        """It should return 400 Bad Request for an invalid query parameter"""
+        resp = self.client.get(BASE_URL, query_string="invalid_param=bad_value")
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
