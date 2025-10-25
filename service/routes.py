@@ -20,7 +20,7 @@ Wishlist Service
 This service implements a REST API that allows you to Create, Read, Update
 and Delete Wishlist
 """
-
+from decimal import Decimal
 from flask import jsonify, request, url_for, abort
 from flask import current_app as app  # Import Flask application
 from service.models import Wishlist, Item
@@ -139,7 +139,7 @@ def add_wishlist_item(wishlist_id: int):
     # price snapshot
     price = payload.get("price")
     try:
-        price_val = float(price)
+        price_val = Decimal(str(price))
     except Exception:  # pylint: disable=broad-except
         abort(status.HTTP_400_BAD_REQUEST, "price must be a number")
 
@@ -161,16 +161,22 @@ def add_wishlist_item(wishlist_id: int):
     #     product_name=product_name,
     #     prices=price_val,
     # )
+    # item = Item()
+    # item.deserialize(
+    #     {
+    #         "wishlist_id": wishlist.id,
+    #         "customer_id": wishlist.customer_id,
+    #         "product_id": product_id,
+    #         "product_name": product_name,
+    #         "prices": price_val,
+    #     }
+    # )
     item = Item()
-    item.deserialize(
-        {
-            "wishlist_id": wishlist.id,
-            "customer_id": wishlist.customer_id,
-            "product_id": product_id,
-            "product_name": product_name,
-            "prices": price_val,
-        }
-    )
+    item.wishlist_id = wishlist.id
+    item.customer_id = wishlist.customer_id
+    item.product_id = product_id
+    item.product_name = product_name
+    item.prices = price_val
     item.create()
 
     # Refetch to ensure server defaults (wish_date) are populated
