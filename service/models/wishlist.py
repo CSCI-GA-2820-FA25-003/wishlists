@@ -101,6 +101,7 @@ class Wishlist(db.Model, PersistentBase):
             item_list = data.get("items", [])
             for json_item in item_list:
                 item = Item()
+                item.customer_id = self.customer_id
                 self.items.append(item)
                 item.deserialize(json_item)
 
@@ -146,7 +147,8 @@ class Wishlist(db.Model, PersistentBase):
     def find_by_customer(cls, customer_id):
         """Returns all Wishlists owned by a given customer"""
         logger.info("Processing customer query for %s ...", customer_id)
-        return cls.query.filter(cls.customer_id == customer_id)
+
+        return cls.query.filter(cls.customer_id == customer_id).all()
 
     def clear_items(self) -> int:
         """

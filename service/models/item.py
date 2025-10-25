@@ -20,7 +20,10 @@ Persistent Base class for database CRUD functions
 # pylint: disable=duplicate-code
 
 import logging
+from decimal import Decimal
+from datetime import datetime
 from .persistent_base import db, PersistentBase, DataValidationError
+
 
 logger = logging.getLogger("flask.app")
 
@@ -90,12 +93,19 @@ class Item(db.Model, PersistentBase):
             data (dict): A dictionary containing the resource data
         """
         try:
-            self.wishlist_id = data["wishlist_id"]
-            self.customer_id = data["customer_id"]
+            # self.wishlist_id = data["wishlist_id"]
+            # self.customer_id = data["customer_id"]
             self.product_id = data["product_id"]
             self.product_name = data["product_name"]
-            self.wish_date = data.get("wish_date")
+            wish_date_str = data.get("wish_date")
+            if wish_date_str:
+                self.wish_date = datetime.fromisoformat(wish_date_str)
             self.prices = data["prices"]
+
+            if data["prices"] is not None:
+                self.prices = Decimal(str(data["prices"]))
+            else:
+                self.prices = None
         except AttributeError as error:
             raise DataValidationError("Invalid attribute: " + error.args[0]) from error
         except KeyError as error:
