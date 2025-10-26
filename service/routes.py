@@ -396,10 +396,10 @@ def update_wishlist_items(wishlist_id, item_id):
 ######################################################################
 @app.route("/wishlists", methods=["GET"])
 def list_wishlists():
-    """Returns all of the Accounts"""
+    """Returns all of the Wishlists with optional query parameters"""
     app.logger.info("Request for Wishlists list")
     # to examine query parameters
-    allowed_params = ["customer_id"]
+    allowed_params = ["customer_id", "name"]
     query_params = request.args.keys()
     for param in query_params:
         if param not in allowed_params:
@@ -407,12 +407,27 @@ def list_wishlists():
             return abort(
                 status.HTTP_400_BAD_REQUEST, f"Invalid query parameter: {param}"
             )
+    # ADDED: Get both query parameters
+    customer_id = request.args.get("customer_id")
+    name = request.args.get("name")
+
+    # ADDED: Validate that name requires customer_id
+    if name and not customer_id:
+        app.logger.warning("name parameter requires customer_id")
+        return abort(
+            status.HTTP_400_BAD_REQUEST, "customer_id is required when querying by name"
+        )
 
     wishlists = []
 
     # Process the query string if any
-    customer_id = request.args.get("customer_id")
-    if customer_id:
+    if customer_id and name:
+        # ADDED: Filter by both customer_id and name (substring, case-insensitive)
+        app.logger.info("Filtering by customer_id: %s and name: %s", customer_id, name)
+        query_results = Wishlist.find_by_customer(customer_id)
+        # Perform case-insensitive substring match
+        wishlists = [wl for wl in query_results if name.lower() in wl.name.lower()]
+    elif customer_id:
         app.logger.info("Filtering by customer_id: %s", customer_id)
         wishlists = Wishlist.find_by_customer(customer_id)
     else:

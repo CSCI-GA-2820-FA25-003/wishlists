@@ -704,7 +704,9 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         wishlist.create()
 
         # When: querying by product_id=1002
-        resp = self.client.get(f"{BASE_URL}/{wishlist.id}/items", query_string="product_id=1002")
+        resp = self.client.get(
+            f"{BASE_URL}/{wishlist.id}/items", query_string="product_id=1002"
+        )
 
         # Then: only the item with product_id=1002 is returned
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
@@ -725,6 +727,57 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         body = resp.get_json()
         self.assertIn("product_id must be an integer", body.get("message", "").lower())
+
+    def test_query_wishlist_by_customer_and_name_substring(self):
+        """It should Query Wishlists by customer_id and name with substring match (case-insensitive)"""
+        # This test matches the acceptance criteria exactly:
+        # Given customer "CUST001" owns wishlists named "Holiday Gifts" and "Birthday Wishlist"
+        customer1 = "CUST001"
+        wishlist1 = WishlistFactory(customer_id=customer1, name="Holiday Gifts")
+        wishlist2 = WishlistFactory(customer_id=customer1, name="Birthday Wishlist")
+
+        # And another customer "CUST999" owns a wishlist named "Holiday Gifts"
+        customer2 = "CUST999"
+        wishlist3 = WishlistFactory(customer_id=customer2, name="Holiday Gifts")
+
+        # Create all wishlists
+        for wl in [wishlist1, wishlist2, wishlist3]:
+            resp = self.client.post(BASE_URL, json=wl.serialize())
+            self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+
+        # When I send a GET request to /wishlists?customer_id=CUST001&name=gift
+        resp = self.client.get(
+            BASE_URL, query_string={"customer_id": customer1, "name": "gift"}
+        )
+
+        # Then I receive a 200 OK response
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+        data = resp.get_json()
+
+        # And only "Holiday Gifts" belonging to "CUST001" is returned
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["customer_id"], customer1)
+        self.assertEqual(data[0]["name"], "Holiday Gifts")
+
+        # And no wishlist from other customers is included
+        for wishlist in data:
+            self.assertNotEqual(wishlist["customer_id"], customer2)
+
+    def test_query_wishlist_by_name_without_customer_id(self):
+        """It should return 400 BAD REQUEST when name is provided without customer_id"""
+        # Create some wishlists
+        self._create_wishlists(count=2)
+
+        # Try to query by name only (without customer_id) - should fail
+        resp = self.client.get(BASE_URL, query_string={"name": "Holiday"})
+
+        # Should return 400 BAD REQUEST
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # Verify the error message mentions customer_id is required
+        data = resp.get_json()
+        self.assertIn("customer_id is required", data["message"].lower())
 
     ######################################################################
     #  E R R O R   H A N D L E R   T E S T S
