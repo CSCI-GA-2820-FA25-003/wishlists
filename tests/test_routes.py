@@ -728,6 +728,21 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         for wishlist in data:
             self.assertNotEqual(wishlist["customer_id"], customer2)
 
+    def test_query_wishlist_by_name_without_customer_id(self):
+        """It should return 400 BAD REQUEST when name is provided without customer_id"""
+        # Create some wishlists
+        self._create_wishlists(count=2)
+
+        # Try to query by name only (without customer_id) - should fail
+        resp = self.client.get(BASE_URL, query_string={"name": "Holiday"})
+
+        # Should return 400 BAD REQUEST
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # Verify the error message mentions customer_id is required
+        data = resp.get_json()
+        self.assertIn("customer_id is required", data["message"].lower())
+
     ######################################################################
     #  E R R O R   H A N D L E R   T E S T S
     ######################################################################
