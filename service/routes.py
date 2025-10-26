@@ -53,6 +53,10 @@ def index():
                 "get_wishlist_item": f"{base}/wishlists/{{wishlist_id}}/items/{{item_id}}",
                 "update_wishlist_item": f"{base}/wishlists/{{wishlist_id}}/items/{{item_id}}",
                 "delete_wishlist_item": f"{base}/wishlists/{{wishlist_id}}/items/{{item_id}}",
+                # ----------- Action endpoints -----------
+                "clear_wishlist": f"{base}/wishlists/{{wishlist_id}}/clear",
+                # to do: Uncomment when Story #28 is complete:
+                # "share_wishlist": f"{base}/wishlists/{{wishlist_id}}/share",
             },
         ),
         status.HTTP_200_OK,

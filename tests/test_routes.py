@@ -92,6 +92,9 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
             "get_wishlist_item",
             "update_wishlist_item",
             "delete_wishlist_item",
+            "clear_wishlist",
+            # to do: Uncomment when Story #28 is complete:
+            # "share_wishlist",
         }
         self.assertTrue(expected_keys.issubset(paths.keys()))
         self.assertTrue(paths["list_all_wishlists"].endswith("/wishlists"))
@@ -112,6 +115,10 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         self.assertIn(
             "/wishlists/{wishlist_id}/items/{item_id}", paths["delete_wishlist_item"]
         )
+        # Verify action endpoints
+        self.assertIn("/wishlists/{wishlist_id}/clear", paths["clear_wishlist"])
+        # to do: Uncomment when Story #28 is complete:
+        # self.assertIn("/wishlists/{wishlist_id}/share", paths["share_wishlist"])
 
     ######################################################################
     #  H E L P E R   M E T H O D S
