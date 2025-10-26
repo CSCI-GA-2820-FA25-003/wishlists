@@ -692,6 +692,42 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         self.assertEqual(len(data), 2)
         self.assertEqual(data[0]["customer_id"], "CUST001")
 
+    def test_query_wishlist_items_by_product_id(self):
+        """It should return only the item matching the exact product_id filter"""
+        # Given: a wishlist with 3 items (1001, 1002, 1003)
+        wishlist = WishlistFactory()
+
+        i1 = ItemFactory(wishlist=wishlist, product_id=1001)
+        i2 = ItemFactory(wishlist=wishlist, product_id=1002)
+        i3 = ItemFactory(wishlist=wishlist, product_id=1003)
+        wishlist.items.extend([i1, i2, i3])
+        wishlist.create()
+
+        # When: querying by product_id=1002
+        resp = self.client.get(
+            f"{BASE_URL}/{wishlist.id}/items", query_string="product_id=1002"
+        )
+
+        # Then: only the item with product_id=1002 is returned
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        data = resp.get_json()
+        self.assertIsInstance(data, list)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["product_id"], 1002)
+        # Sanity: ensure not returning others
+        self.assertNotEqual(data[0]["product_id"], 1001)
+        self.assertNotEqual(data[0]["product_id"], 1003)
+
+    def test_query_wishlist_items_invalid_product_id(self):
+        """It should return 400 Bad Request when product_id is non-numeric"""
+        wishlist = self._create_wishlists(1)[0]
+        resp = self.client.get(
+            f"{BASE_URL}/{wishlist.id}/items", query_string="product_id=abc"
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        body = resp.get_json()
+        self.assertIn("product_id must be an integer", body.get("message", "").lower())
+
     def test_query_wishlist_by_customer_and_name_substring(self):
         """It should Query Wishlists by customer_id and name with substring match (case-insensitive)"""
         # This test matches the acceptance criteria exactly:
