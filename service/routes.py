@@ -69,20 +69,40 @@ def index():
 ######################################################################
 @app.route("/wishlists/<int:wishlist_id>/items", methods=["GET"])
 def list_wishlist_item(wishlist_id: int):
-    """Returns all of the Item for an Wishlists"""
-    app.logger.info("Request for all Addresses for Account with id: %s", wishlist_id)
+    """List Items in a Wishlist with optional filtering by product_id."""
+    app.logger.info(
+        "Request to list items for Wishlist id: %s with args: %s",
+        wishlist_id,
+        dict(request.args),
+    )
 
-    # See if the account exists and abort if it doesn't
+    # Ensure the wishlist exists
     wishlist = Wishlist.find(wishlist_id)
     if not wishlist:
         abort(
             status.HTTP_404_NOT_FOUND,
-            f"Wishlist with id '{wishlist}' could not be found.",
+            f"Wishlist with id '{wishlist_id}' was not found.",
         )
 
-    # Get the addresses for the account
-    results = [item.serialize() for item in wishlist.items]
+    # Optional filtering by product_id
+    product_id_arg = request.args.get("product_id")
+    if product_id_arg is not None:
+        try:
+            product_id_val = int(product_id_arg)
+        except (TypeError, ValueError):
+            abort(
+                status.HTTP_400_BAD_REQUEST,
+                "product_id must be an integer",
+            )
 
+        items = Item.query.filter_by(
+            wishlist_id=wishlist_id, product_id=product_id_val
+        ).all()
+    else:
+        # No filter: return all items in the wishlist
+        items = wishlist.items
+
+    results = [item.serialize() for item in items]
     return jsonify(results), status.HTTP_200_OK
 
 
