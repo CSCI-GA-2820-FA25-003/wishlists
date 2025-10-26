@@ -786,6 +786,48 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         data = resp.get_json()
         self.assertIn("customer_id is required", data["message"].lower())
 
+    def test_query_items_by_partial_product_name(self):
+        """It should filter items by partial product_name (case-insensitive substring)"""
+        wl = WishlistFactory()
+        i1 = ItemFactory(wishlist=wl, product_name="Blue Mug", product_id=10101)
+        i2 = ItemFactory(wishlist=wl, product_name="Red Plate", product_id=20202)
+        wl.items.extend([i1, i2])
+        wl.create()
+
+        resp = self.client.get(
+            f"{BASE_URL}/{wl.id}/items", query_string={"product_name": "mug"}
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        data = resp.get_json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["product_name"], "Blue Mug")
+
+    def test_query_items_product_name_case_insensitive(self):
+        """It should match product_name ignoring case"""
+        wl = WishlistFactory()
+        i1 = ItemFactory(wishlist=wl, product_name="Wireless Mouse", product_id=30303)
+        wl.items.append(i1)
+        wl.create()
+
+        resp = self.client.get(
+            f"{BASE_URL}/{wl.id}/items", query_string={"product_name": "MOUSE"}
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        names = [x["product_name"] for x in resp.get_json()]
+        self.assertIn("Wireless Mouse", names)
+
+    def test_query_items_invalid_param_400(self):
+        """It should return 400 Bad Request for unsupported item query params"""
+        wl = WishlistFactory()
+        wl.create()
+        resp = self.client.get(
+            f"{BASE_URL}/{wl.id}/items", query_string={"unknown_param": "abc"}
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        msg = resp.get_json().get("message", "").lower()
+        self.assertIn("unsupported", msg)
+        self.assertIn("unknown_param", msg)
+
     ######################################################################
     #  E R R O R   H A N D L E R   T E S T S
     ######################################################################

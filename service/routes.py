@@ -88,23 +88,31 @@ def list_wishlist_item(wishlist_id: int):
             f"Wishlist with id '{wishlist_id}' was not found.",
         )
 
-    # Optional filtering by product_id
-    product_id_arg = request.args.get("product_id")
-    if product_id_arg is not None:
-        try:
-            product_id_val = int(product_id_arg)
-        except (TypeError, ValueError):
-            abort(
-                status.HTTP_400_BAD_REQUEST,
-                "product_id must be an integer",
-            )
+    # Validate query parameters
+    params = request.args.to_dict(flat=True)
+    allowed = {"product_id", "product_name"}
+    unknown = set(params) - allowed
+    if unknown:
+        abort(
+            status.HTTP_400_BAD_REQUEST,
+            f"Unsupported query parameter(s): {', '.join(sorted(unknown))}. "
+            "Supported: product_id, product_name",
+        )
 
-        items = Item.query.filter_by(
-            wishlist_id=wishlist_id, product_id=product_id_val
-        ).all()
-    else:
-        # No filter: return all items in the wishlist
-        items = wishlist.items
+    items = wishlist.items
+
+    # Optional filtering by product_id (exact integer)
+    if "product_id" in params:
+        try:
+            pid = int(params["product_id"])
+        except (TypeError, ValueError):
+            abort(status.HTTP_400_BAD_REQUEST, "product_id must be an integer")
+        items = [it for it in items if it.product_id == pid]
+
+    # ---- NEW: Optional filtering by product_name (case-insensitive substring) ----
+    if "product_name" in params and params["product_name"].strip():
+        needle = params["product_name"].strip().lower()
+        items = [it for it in items if needle in (it.product_name or "").lower()]
 
     results = [item.serialize() for item in items]
     return jsonify(results), status.HTTP_200_OK
