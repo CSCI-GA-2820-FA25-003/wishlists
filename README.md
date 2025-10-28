@@ -2,6 +2,10 @@
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python](https://img.shields.io/badge/Language-Python-blue.svg)](https://python.org/)
+[![Build Status](https://github.com/CSCI-GA-2820-FA25-003/wishlists/actions/workflows/ci.yml/badge.svg)](https://github.com/CSCI-GA-2820-FA25-003/wishlists/actions)
+[![codecov](https://codecov.io/gh/CSCI-GA-2820-FA25-003/wishlists/graph/badge.svg?token=8K1RZQONPO)](https://codecov.io/gh/CSCI-GA-2820-FA25-003/wishlists)
+
+
 
 This is a documentation for API usage on Wishlists.
 
@@ -55,7 +59,19 @@ Service will run at http://localhost:8080/
 | **POST**   | `/wishlists/{wishlist_id}/items`           | Add a new item to a wishlist                                      |
 | **PUT**    | `/wishlists/{wishlist_id}/items/{item_id}` | Update details of an existing item                                |
 | **DELETE** | `/wishlists/{wishlist_id}/items/{item_id}` | Remove an item from a wishlist                                    |
+| **PUT**    | `/wishlists/{wishlist_id}/clear` | Clear all items from a wishlist  |  
+| **PUT**    | `/wishlists/{wishlist_id}/share` | Share a wishlist  | 
 
+**Query Parameters**
+
+	GET /wishlists
+	  •customer_id (string): filter wishlists by customer
+	  •name (string): requires customer_id; case-insensitive substring match on wishlist name
+	  •If any unknown query parameter is present → 400 Bad Request
+	GET /wishlists/{wishlist_id}/items
+	  •product_id (int): exact match
+	  •product_name (string): case-insensitive substring match
+	  •If any unknown query parameter is present → 400 Bad Request
 
 **Sample Commands**
   
@@ -70,6 +86,8 @@ curl -X POST \
 2. Get all wishlists
 ```
 curl -X GET http://localhost:8080/wishlists
+curl -X GET http://localhost:8080/wishlists?customer_id=12345
+curl -X GET http://localhost:8080/wishlists?customer_id=12345&name=deal
 ```
 
 3. Update a wishlist
@@ -97,6 +115,8 @@ curl -X POST \
 6. Get all items in a wishlist
 ```
 curl -X GET http://localhost:8080/wishlists/1/items
+curl -X GET http://localhost:8080/wishlists/1/items?product_id=123
+curl -X GET http://localhost:8080/wishlists/1/items?product_name=Headphones
 ```
 
 7. Update an item
@@ -124,10 +144,20 @@ curl -X DELETE http://localhost:8080/wishlists/1/items/2
 curl -X GET http://localhost:8080/wishlists/1/items/2
 ```
 
-10.  Get a single wishlist
+10. Get a single wishlist
 ```
 curl -X GET http://localhost:8080/wishlists/1
 ```
+
+11. Clear a wishlist
+```
+curl -X PUT http://localhost:8080/wishlists/1/clear -i
+```
+12. Share a wishlist
+```
+
+```
+
 
 ## Testing Instructions
 
@@ -182,6 +212,10 @@ The project contains the following:
 .devcontainers/     - Folder with support for VSCode Remote Containers
 dot-env-example     - copy to .env to use environment variables
 pyproject.toml      - Poetry list of Python libraries required by your code
+.github/
+├── ISSUE_TEMPLATE/ - issue templates for bug/feature reports
+└── workflows/      - GitHub Actions workflows for CI/CD
+    └── ci.yml      - main CI pipeline definition    
 
 
 service/                    - main service package
