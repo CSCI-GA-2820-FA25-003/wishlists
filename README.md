@@ -155,7 +155,7 @@ curl -X PUT http://localhost:8080/wishlists/1/clear -i
 ```
 12. Share a wishlist
 ```
-
+curl -X PUT http://localhost:8080/wishlists/1/share -i
 ```
 
 

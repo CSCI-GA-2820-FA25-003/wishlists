@@ -55,8 +55,7 @@ def index():
                 "delete_wishlist_item": f"{base}/wishlists/{{wishlist_id}}/items/{{item_id}}",
                 # ----------- Action endpoints -----------
                 "clear_wishlist": f"{base}/wishlists/{{wishlist_id}}/clear",
-                # to do: Uncomment when Story #28 is complete:
-                # "share_wishlist": f"{base}/wishlists/{{wishlist_id}}/share",
+                "share_wishlist": f"{base}/wishlists/{{wishlist_id}}/share",
             },
         ),
         status.HTTP_200_OK,
@@ -510,6 +509,32 @@ def clear_wishlist(wishlist_id: int):
         wishlist_id,
     )
     return "", status.HTTP_204_NO_CONTENT
+
+
+#################################################################
+# SHARE A WISHLIST
+#################################################################
+@app.route("/wishlists/<int:wishlist_id>/share", methods=["PUT"])
+def share_wishlist(wishlist_id: int):
+    """
+    Generate and return a shareable URL for the given Wishlist.
+
+    Responses:
+        200 OK with JSON { "share_url": "<base>/wishlists/{wishlist_id}" }
+        404 Not Found if the wishlist does not exist
+    """
+    app.logger.info("Request to generate share link for Wishlist [%s]", wishlist_id)
+
+    wishlist = Wishlist.find(wishlist_id)
+    if not wishlist:
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Wishlist with id '{wishlist_id}' was not found.",
+        )
+
+    # Build an absolute URL to the wishlist resource
+    share_url = url_for("get_wishlists", wishlist_id=wishlist.id, _external=True)
+    return jsonify({"share_url": share_url}), status.HTTP_200_OK
 
 
 ######################################################################

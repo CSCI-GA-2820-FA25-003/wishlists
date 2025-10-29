@@ -93,8 +93,7 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
             "update_wishlist_item",
             "delete_wishlist_item",
             "clear_wishlist",
-            # to do: Uncomment when Story #28 is complete:
-            # "share_wishlist",
+            "share_wishlist",
         }
         self.assertTrue(expected_keys.issubset(paths.keys()))
         self.assertTrue(paths["list_all_wishlists"].endswith("/wishlists"))
@@ -117,8 +116,7 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         )
         # Verify action endpoints
         self.assertIn("/wishlists/{wishlist_id}/clear", paths["clear_wishlist"])
-        # to do: Uncomment when Story #28 is complete:
-        # self.assertIn("/wishlists/{wishlist_id}/share", paths["share_wishlist"])
+        self.assertIn("/wishlists/{wishlist_id}/share", paths["share_wishlist"])
 
     ######################################################################
     #  H E L P E R   M E T H O D S
@@ -324,6 +322,27 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
             headers={"X-Customer-Id": "IntruderB"},  # not the owner
         )
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
+    ######################################################################
+    #  S H A R E   L I N K   T E S T S
+    ######################################################################
+
+    def test_share_wishlist_success(self):
+        """It should generate a share URL for an existing wishlist and return 200"""
+        wishlist = self._create_wishlists(1, customer_id="CUST001")[0]
+
+        resp = self.client.put(f"{BASE_URL}/{wishlist.id}/share")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+        body = resp.get_json()
+        self.assertIn("share_url", body)
+        # Should be an absolute URL that ends with /wishlists/{id}
+        self.assertTrue(body["share_url"].endswith(f"{BASE_URL}/{wishlist.id}"))
+
+    def test_share_wishlist_not_found(self):
+        """It should return 404 when generating a link for a non-existent wishlist"""
+        resp = self.client.put(f"{BASE_URL}/999/share")
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
 
     ######################################################################
     #  I T E M   T E S T   C A S E S
