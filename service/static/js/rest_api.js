@@ -1,260 +1,466 @@
 $(function () {
+    const $flash = $("#flash_message");
 
-    // ****************************************
-    //  U T I L I T Y   F U N C T I O N S
-    // ****************************************
+    const $wishlistId = $("#wishlist_id");
+    const $wishlistCustomerId = $("#wishlist_customer_id");
+    const $wishlistName = $("#wishlist_wishlist_name");
+    const $wishlistDescription = $("#wishlist_description");
 
-    // Updates the form with data from the response
-    function update_form_data(res) {
-        $("#pet_id").val(res.id);
-        $("#pet_name").val(res.name);
-        $("#pet_category").val(res.category);
-        if (res.available == true) {
-            $("#pet_available").val("true");
-        } else {
-            $("#pet_available").val("false");
+    const $itemWishlistId = $("#item_wishlist_id");
+    const $itemProductId = $("#item_product_id");
+    const $itemProductName = $("#item_product_name");
+    const $itemPrice = $("#item_price");
+
+    function handleFail(res, fallback) {
+        const message = res.responseJSON?.message || res.responseText || fallback || "Server error";
+        flashMessage(message);
+    }
+
+    function flashMessage(message) {
+        $flash.empty();
+        if (message) {
+            $flash.append(message);
         }
-        $("#pet_gender").val(res.gender);
-        $("#pet_birthday").val(res.birthday);
     }
 
-    /// Clears all form fields
-    function clear_form_data() {
-        $("#pet_name").val("");
-        $("#pet_category").val("");
-        $("#pet_available").val("");
-        $("#pet_gender").val("");
-        $("#pet_birthday").val("");
+    /* ===== Extended Wishlist & Item Features (Optional) START =====
+    const $itemId = $("#item_id");
+    const $searchResults = $("#search_results");
+
+    function updateWishlistForm(data) {
+        $wishlistId.val(data.id ?? "");
+        $wishlistCustomerId.val(data.customer_id ?? "");
+        $wishlistName.val(data.name ?? "");
+        $wishlistDescription.val(data.description ?? "");
     }
 
-    // Updates the flash message area
-    function flash_message(message) {
-        $("#flash_message").empty();
-        $("#flash_message").append(message);
+    function clearWishlistForm() {
+        $wishlistId.val("");
+        $wishlistCustomerId.val("");
+        $wishlistName.val("");
+        $wishlistDescription.val("");
     }
 
-    // ****************************************
-    // Create a Pet
-    // ****************************************
+    function updateItemForm(data) {
+        $itemWishlistId.val(data.wishlist_id ?? $itemWishlistId.val());
+        $itemId.val(data.id ?? "");
+        $itemProductId.val(data.product_id ?? "");
+        $itemProductName.val(data.product_name ?? "");
+        const price = data.prices ?? data.price;
+        $itemPrice.val(price !== undefined && price !== null ? price : "");
+    }
 
-    $("#create-btn").click(function () {
+    function clearItemForm() {
+        $itemWishlistId.val("");
+        $itemId.val("");
+        $itemProductId.val("");
+        $itemProductName.val("");
+        $itemPrice.val("");
+    }
 
-        let name = $("#pet_name").val();
-        let category = $("#pet_category").val();
-        let available = $("#pet_available").val() == "true";
-        let gender = $("#pet_gender").val();
-        let birthday = $("#pet_birthday").val();
+    function renderWishlistTable(wishlists) {
+        $searchResults.empty();
+        if (!wishlists || wishlists.length === 0) {
+            $searchResults.append("<p>No wishlists found.</p>");
+            return;
+        }
 
-        let data = {
-            "name": name,
-            "category": category,
-            "available": available,
-            "gender": gender,
-            "birthday": birthday
+        let table = '<table class="table table-striped" cellpadding="10">';
+        table += "<thead><tr>";
+        table += '<th class="col-md-2">ID</th>';
+        table += '<th class="col-md-3">Customer ID</th>';
+        table += '<th class="col-md-3">Name</th>';
+        table += '<th class="col-md-4">Description</th>';
+        table += "</tr></thead><tbody>";
+
+        wishlists.forEach((wishlist, index) => {
+            table += `<tr id="wishlist_row_${index}"><td>${wishlist.id ?? ""}</td><td>${wishlist.customer_id ?? ""}</td><td>${wishlist.name ?? ""}</td><td>${wishlist.description ?? ""}</td></tr>`;
+        });
+
+        table += "</tbody></table>";
+        $searchResults.append(table);
+        updateWishlistForm(wishlists[0]);
+    }
+
+    function renderItemTable(items) {
+        $searchResults.empty();
+        if (!items || items.length === 0) {
+            $searchResults.append("<p>No items found.</p>");
+            return;
+        }
+
+        let table = '<table class="table table-striped" cellpadding="10">';
+        table += "<thead><tr>";
+        table += '<th class="col-md-2">Item ID</th>';
+        table += '<th class="col-md-2">Wishlist ID</th>';
+        table += '<th class="col-md-2">Product ID</th>';
+        table += '<th class="col-md-4">Product Name</th>';
+        table += '<th class="col-md-2">Price</th>';
+        table += "</tr></thead><tbody>";
+
+        items.forEach((item, index) => {
+            table += `<tr id="item_row_${index}"><td>${item.id ?? ""}</td><td>${item.wishlist_id ?? ""}</td><td>${item.product_id ?? ""}</td><td>${item.product_name ?? ""}</td><td>${item.prices ?? ""}</td></tr>`;
+        });
+
+        table += "</tbody></table>";
+        $searchResults.append(table);
+        updateItemForm(items[0]);
+    }
+
+    $("#update_wishlist-btn").click(function () {
+        const wishlistId = $wishlistId.val();
+        if (!wishlistId) {
+            flashMessage("Wishlist ID is required for update");
+            return;
+        }
+
+        const data = {
+            name: $wishlistName.val(),
+            description: $wishlistDescription.val() || null,
         };
 
-        $("#flash_message").empty();
-        
-        let ajax = $.ajax({
-            type: "POST",
-            url: "/pets",
+        flashMessage("");
+
+        $.ajax({
+            type: "PUT",
+            url: `/wishlists/${wishlistId}`,
+            contentType: "application/json",
+            headers: {
+                "X-Customer-Id": $wishlistCustomerId.val(),
+            },
+            data: JSON.stringify(data),
+        })
+            .done(function (res) {
+                updateWishlistForm(res);
+                flashMessage("Wishlist updated successfully");
+            })
+            .fail(handleFail);
+    });
+
+    $("#retrieve_wishlist-btn").click(function () {
+        const wishlistId = $wishlistId.val();
+        if (!wishlistId) {
+            flashMessage("Please enter a Wishlist ID to retrieve");
+            return;
+        }
+
+        flashMessage("");
+
+        $.ajax({
+            type: "GET",
+            url: `/wishlists/${wishlistId}`,
+            contentType: "application/json",
+        })
+            .done(function (res) {
+                updateWishlistForm(res);
+                flashMessage("Wishlist retrieved successfully");
+            })
+            .fail(function (res) {
+                clearWishlistForm();
+                handleFail(res);
+            });
+    });
+
+    $("#delete_wishlist-btn").click(function () {
+        const wishlistId = $wishlistId.val();
+        if (!wishlistId) {
+            flashMessage("Please enter a Wishlist ID to delete");
+            return;
+        }
+
+        flashMessage("");
+
+        $.ajax({
+            type: "DELETE",
+            url: `/wishlists/${wishlistId}`,
+            contentType: "application/json",
+        })
+            .done(function () {
+                clearWishlistForm();
+                flashMessage("Wishlist deleted successfully");
+            })
+            .fail(handleFail);
+    });
+
+    $("#clear_form_fields-btn").click(function () {
+        $wishlistId.val("");
+        flashMessage("");
+        clearWishlistForm();
+    });
+
+    $("#search_wishlists-btn").click(function () {
+        const customerId = $wishlistCustomerId.val();
+        const name = $wishlistName.val();
+        const params = [];
+
+        if (customerId) {
+            params.push(`customer_id=${encodeURIComponent(customerId)}`);
+        }
+        if (name) {
+            params.push(`name=${encodeURIComponent(name)}`);
+        }
+
+        const queryString = params.length > 0 ? `?${params.join("&")}` : "";
+
+        flashMessage("");
+
+        $.ajax({
+            type: "GET",
+            url: `/wishlists${queryString}`,
+            contentType: "application/json",
+        })
+            .done(function (res) {
+                renderWishlistTable(res);
+                flashMessage("Wishlist search completed");
+            })
+            .fail(handleFail);
+    });
+
+    $("#clear_wishlist-btn").click(function () {
+        const wishlistId = $wishlistId.val();
+        if (!wishlistId) {
+            flashMessage("Wishlist ID is required to clear a wishlist");
+            return;
+        }
+
+        flashMessage("");
+
+        $.ajax({
+            type: "PUT",
+            url: `/wishlists/${wishlistId}/clear`,
+            contentType: "application/json",
+        })
+            .done(function () {
+                flashMessage("Wishlist cleared successfully");
+            })
+            .fail(handleFail);
+    });
+
+    $("#share_wishlist-btn").click(function () {
+        const wishlistId = $wishlistId.val();
+        if (!wishlistId) {
+            flashMessage("Wishlist ID is required to share a wishlist");
+            return;
+        }
+
+        flashMessage("");
+
+        $.ajax({
+            type: "PUT",
+            url: `/wishlists/${wishlistId}/share`,
+            contentType: "application/json",
+        })
+            .done(function (res) {
+                const shareUrl = res.share_url || "";
+                if (shareUrl) {
+                    const link = `<a href="${shareUrl}" target="_blank" rel="noopener noreferrer">${shareUrl}</a>`;
+                    flashMessage(`Share URL: ${link}`);
+                } else {
+                    flashMessage("Share link generated successfully");
+                }
+            })
+            .fail(handleFail);
+    });
+
+    $("#update_item-btn").click(function () {
+        const wishlistId = $itemWishlistId.val();
+        const itemId = $itemId.val();
+        if (!wishlistId || !itemId) {
+            flashMessage("Wishlist ID and Item ID are required for update");
+            return;
+        }
+
+        const productIdVal = $itemProductId.val();
+        const priceVal = $itemPrice.val();
+        const data = {
+            product_id: productIdVal ? Number(productIdVal) : null,
+            product_name: $itemProductName.val(),
+            prices: priceVal ? Number(priceVal) : null,
+        };
+
+        flashMessage("");
+
+        $.ajax({
+            type: "PUT",
+            url: `/wishlists/${wishlistId}/items/${itemId}`,
             contentType: "application/json",
             data: JSON.stringify(data),
-        });
-
-        ajax.done(function(res){
-            update_form_data(res)
-            flash_message("Success")
-        });
-
-        ajax.fail(function(res){
-            flash_message(res.responseJSON.message)
-        });
+        })
+            .done(function (res) {
+                updateItemForm(res);
+                flashMessage("Item updated successfully");
+            })
+            .fail(handleFail);
     });
 
+    $("#retrieve_item-btn").click(function () {
+        const wishlistId = $itemWishlistId.val();
+        const itemId = $itemId.val();
+        if (!wishlistId || !itemId) {
+            flashMessage("Wishlist ID and Item ID are required to retrieve an item");
+            return;
+        }
 
-    // ****************************************
-    // Update a Pet
-    // ****************************************
+        flashMessage("");
 
-    $("#update-btn").click(function () {
+        $.ajax({
+            type: "GET",
+            url: `/wishlists/${wishlistId}/items/${itemId}`,
+            contentType: "application/json",
+        })
+            .done(function (res) {
+                updateItemForm(res);
+                flashMessage("Item retrieved successfully");
+            })
+            .fail(function (res) {
+                clearItemForm();
+                handleFail(res);
+            });
+    });
 
-        let pet_id = $("#pet_id").val();
-        let name = $("#pet_name").val();
-        let category = $("#pet_category").val();
-        let available = $("#pet_available").val() == "true";
-        let gender = $("#pet_gender").val();
-        let birthday = $("#pet_birthday").val();
+    $("#delete_item-btn").click(function () {
+        const wishlistId = $itemWishlistId.val();
+        const itemId = $itemId.val();
+        if (!wishlistId || !itemId) {
+            flashMessage("Wishlist ID and Item ID are required to delete an item");
+            return;
+        }
 
-        let data = {
-            "name": name,
-            "category": category,
-            "available": available,
-            "gender": gender,
-            "birthday": birthday
+        flashMessage("");
+
+        $.ajax({
+            type: "DELETE",
+            url: `/wishlists/${wishlistId}/items/${itemId}`,
+            contentType: "application/json",
+        })
+            .done(function () {
+                clearItemForm();
+                flashMessage("Item deleted successfully");
+            })
+            .fail(handleFail);
+    });
+
+    $("#clear_item-btn").click(function () {
+        clearItemForm();
+        flashMessage("");
+    });
+
+    $("#search_items-btn").click(function () {
+        const wishlistId = $itemWishlistId.val();
+        if (!wishlistId) {
+            flashMessage("Wishlist ID is required to search items");
+            return;
+        }
+
+        const productId = $itemProductId.val();
+        const productName = $itemProductName.val();
+        const params = [];
+
+        if (productId) {
+            params.push(`product_id=${encodeURIComponent(productId)}`);
+        }
+        if (productName) {
+            params.push(`product_name=${encodeURIComponent(productName)}`);
+        }
+        const queryString = params.length > 0 ? `?${params.join("&")}` : "";
+
+        flashMessage("");
+
+        $.ajax({
+            type: "GET",
+            url: `/wishlists/${wishlistId}/items${queryString}`,
+            contentType: "application/json",
+        })
+            .done(function (res) {
+                renderItemTable(res);
+                if (res.length > 0) {
+                    $itemWishlistId.val(res[0].wishlist_id ?? wishlistId);
+                }
+                flashMessage("Item search completed");
+            })
+            .fail(handleFail);
+    });
+    ===== Extended Wishlist & Item Features (Optional) END ===== */
+
+    $("#create_wishlist-btn").click(function () {
+        const payload = {
+            customer_id: $wishlistCustomerId.val(),
+            name: $wishlistName.val(),
+            description: $wishlistDescription.val() || null,
         };
 
-        $("#flash_message").empty();
-
-        let ajax = $.ajax({
-                type: "PUT",
-                url: `/pets/${pet_id}`,
-                contentType: "application/json",
-                data: JSON.stringify(data)
-            })
-
-        ajax.done(function(res){
-            update_form_data(res)
-            flash_message("Success")
-        });
-
-        ajax.fail(function(res){
-            flash_message(res.responseJSON.message)
-        });
-
-    });
-
-    // ****************************************
-    // Retrieve a Pet
-    // ****************************************
-
-    $("#retrieve-btn").click(function () {
-
-        let pet_id = $("#pet_id").val();
-
-        $("#flash_message").empty();
-
-        let ajax = $.ajax({
-            type: "GET",
-            url: `/pets/${pet_id}`,
-            contentType: "application/json",
-            data: ''
-        })
-
-        ajax.done(function(res){
-            //alert(res.toSource())
-            update_form_data(res)
-            flash_message("Success")
-        });
-
-        ajax.fail(function(res){
-            clear_form_data()
-            flash_message(res.responseJSON.message)
-        });
-
-    });
-
-    // ****************************************
-    // Delete a Pet
-    // ****************************************
-
-    $("#delete-btn").click(function () {
-
-        let pet_id = $("#pet_id").val();
-
-        $("#flash_message").empty();
-
-        let ajax = $.ajax({
-            type: "DELETE",
-            url: `/pets/${pet_id}`,
-            contentType: "application/json",
-            data: '',
-        })
-
-        ajax.done(function(res){
-            clear_form_data()
-            flash_message("Pet has been Deleted!")
-        });
-
-        ajax.fail(function(res){
-            flash_message("Server error!")
-        });
-    });
-
-    // ****************************************
-    // Clear the form
-    // ****************************************
-
-    $("#clear-btn").click(function () {
-        $("#pet_id").val("");
-        $("#flash_message").empty();
-        clear_form_data()
-    });
-
-    // ****************************************
-    // Search for a Pet
-    // ****************************************
-
-    $("#search-btn").click(function () {
-
-        let name = $("#pet_name").val();
-        let category = $("#pet_category").val();
-        let available = $("#pet_available").val() == "true";
-
-        let queryString = ""
-
-        if (name) {
-            queryString += 'name=' + name
-        }
-        if (category) {
-            if (queryString.length > 0) {
-                queryString += '&category=' + category
-            } else {
-                queryString += 'category=' + category
-            }
-        }
-        if (available) {
-            if (queryString.length > 0) {
-                queryString += '&available=' + available
-            } else {
-                queryString += 'available=' + available
-            }
+        if (!payload.customer_id || !payload.name) {
+            flashMessage("customer_id and name are required to create a wishlist");
+            return;
         }
 
-        $("#flash_message").empty();
+        flashMessage("");
 
-        let ajax = $.ajax({
-            type: "GET",
-            url: `/pets?${queryString}`,
+        $.ajax({
+            type: "POST",
+            url: "/wishlists",
             contentType: "application/json",
-            data: ''
+            data: JSON.stringify(payload),
         })
-
-        ajax.done(function(res){
-            //alert(res.toSource())
-            $("#search_results").empty();
-            let table = '<table class="table table-striped" cellpadding="10">'
-            table += '<thead><tr>'
-            table += '<th class="col-md-2">ID</th>'
-            table += '<th class="col-md-2">Name</th>'
-            table += '<th class="col-md-2">Category</th>'
-            table += '<th class="col-md-2">Available</th>'
-            table += '<th class="col-md-2">Gender</th>'
-            table += '<th class="col-md-2">Birthday</th>'
-            table += '</tr></thead><tbody>'
-            let firstPet = "";
-            for(let i = 0; i < res.length; i++) {
-                let pet = res[i];
-                table +=  `<tr id="row_${i}"><td>${pet.id}</td><td>${pet.name}</td><td>${pet.category}</td><td>${pet.available}</td><td>${pet.gender}</td><td>${pet.birthday}</td></tr>`;
-                if (i == 0) {
-                    firstPet = pet;
+            .done(function (res) {
+                if (typeof updateWishlistForm === "function") {
+                    updateWishlistForm(res);
+                } else {
+                    $wishlistId.val(res.id ?? "");
                 }
-            }
-            table += '</tbody></table>';
-            $("#search_results").append(table);
-
-            // copy the first result to the form
-            if (firstPet != "") {
-                update_form_data(firstPet)
-            }
-
-            flash_message("Success")
-        });
-
-        ajax.fail(function(res){
-            flash_message(res.responseJSON.message)
-        });
-
+                flashMessage("Wishlist created successfully");
+            })
+            .fail(function (res) {
+                handleFail(res, "Failed to create wishlist");
+            });
     });
 
-})
+    $("#create_item-btn").click(function () {
+        const wishlistId = $itemWishlistId.val();
+        if (!wishlistId) {
+            flashMessage("wishlist_id is required to create an item");
+            return;
+        }
+
+        const productIdVal = $itemProductId.val();
+        const priceVal = $itemPrice.val();
+        const payload = {
+            product_id: productIdVal ? Number(productIdVal) : null,
+            product_name: $itemProductName.val(),
+            price: priceVal ? Number(priceVal) : null,
+        };
+
+        if (!payload.product_id || !payload.product_name) {
+            flashMessage("product_id and product_name are required to create an item");
+            return;
+        }
+
+        if (Number.isNaN(payload.product_id) || payload.product_id <= 0) {
+            flashMessage("product_id must be a positive number");
+            return;
+        }
+
+        if (payload.price === null || Number.isNaN(payload.price) || payload.price < 0) {
+            flashMessage("price must be a non-negative number");
+            return;
+        }
+
+        flashMessage("");
+
+        $.ajax({
+            type: "POST",
+            url: `/wishlists/${wishlistId}/items`,
+            contentType: "application/json",
+            data: JSON.stringify(payload),
+        })
+            .done(function (res) {
+                if (typeof updateItemForm === "function") {
+                    updateItemForm(res);
+                }
+                flashMessage("Wishlist item created successfully");
+            })
+            .fail(function (res) {
+                handleFail(res, "Failed to create wishlist item");
+            });
+    });
+});
