@@ -68,8 +68,20 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
     #  P L A C E   T E S T   C A S E S   H E R E
     ######################################################################
 
+    def test_index_route_returns_index_html(self):
+        """It should return the index.html UI page"""
+        client = app.test_client()
+        response = client.get("/")
+
+        assert response.status_code == 200
+
+        assert b"<html" in response.data
+
+        content_type = response.headers.get("Content-Type")
+        assert "text/html" in content_type
+
     def test_index(self):
-        """It should call the home page"""
+        """It should call the home page api"""
         resp = self.client.get("/api")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         data = resp.get_json()
