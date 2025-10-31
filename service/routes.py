@@ -32,6 +32,15 @@ from service.common import status  # HTTP Status Codes
 ######################################################################
 @app.route("/")
 def index():
+    """Return the Admin UI page"""
+    return app.send_static_file("index.html")
+
+
+######################################################################
+# GET API INDEX
+######################################################################
+@app.route("/api")
+def api_index():
     """Root URL response"""
     base = request.host_url.rstrip("/")
     return (
