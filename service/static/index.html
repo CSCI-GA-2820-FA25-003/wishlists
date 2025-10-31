@@ -1,12 +1,171 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Wishlist Admin UI</title>
-</head>
-<body>
-  <h1>Wishlist Admin UI</h1>
-  <p>Welcome to the Wishlist Service Admin Panel</p>
-  <p>Sections: Wishlists | Items</p>
-</body>
+<html>
+  <head>
+    <title>Wishlist Admin UI</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/x-icon" href="static/images/newapp-icon.png">
+    <link rel="stylesheet" href="static/css/cerulean_bootstrap.min.css">
+  </head>
+  <body>
+    <div class="container">
+      <div class="page-header">
+          <h1>Wishlist Admin UI Service</h1>
+      </div>
+
+      <!-- Flash Message -->
+      <div class="table-responsive">
+        <table class="table">
+          <tr><td>Status:</td><td><span id="flash_message"></span></td></tr>
+        </table>
+      </div>
+
+      <!-- FORM -->
+      <div class="col-md-12" id="form_data">
+        <h3>Create a Wishlist:</h3>
+        <div class="well">
+          <div class="form-horizontal">
+            <div class="form-group">
+              <label class="control-label col-sm-2" for="wishlist_id">Wishlist ID:</label>
+              <div class="col-sm-6">
+                <input type="text" class="form-control" id="wishlist_id" placeholder="Generated Wishlist ID" readonly>
+              </div>
+              <!-- ===== Wishlist Retrieve/Delete Buttons START =====
+              Remove the readonly attribute above when enabling these actions.
+              <div class="col-sm-4">
+                <button type="submit" class="btn btn-primary" id="retrieve_wishlist-btn">Retrieve Wishlist</button>
+                <button type="submit" class="btn btn-danger" id="delete_wishlist-btn">Delete Wishlist</button>
+              </div>
+              ===== Wishlist Retrieve/Delete Buttons END ===== -->
+            </div>
+          </div> <!-- form horizontal -->
+
+          <div class="form-horizontal">
+
+            <!-- NAME -->
+            <div class="form-group">
+              <label class="control-label col-sm-2" for="wishlist_customer_id">Customer ID:</label>
+              <div class="col-sm-10">
+                <input type="text" class="form-control" id="wishlist_customer_id" placeholder="Enter Customer ID">
+              </div>
+            </div>
+
+            <!-- NAME -->
+            <div class="form-group">
+              <label class="control-label col-sm-2" for="wishlist_wishlist_name">Wishlist Name:</label>
+              <div class="col-sm-10">
+                <input type="text" class="form-control" id="wishlist_wishlist_name" placeholder="Enter Wishlist Name">
+              </div>
+            </div>
+
+            <!-- DESCRIPTION -->
+            <div class="form-group">
+              <label class="control-label col-sm-2" for="wishlist_description">Description:</label>
+              <div class="col-sm-10">
+                <textarea class="form-control" id="wishlist_description" placeholder="Enter Wishlist Description"></textarea>
+              </div>
+            </div>
+
+            <!-- SUBMIT BUTTONS -->
+            <div class="form-group">
+              <div class="col-sm-offset-2 col-sm-10">
+                <button type="submit" class="btn btn-success" id="create_wishlist-btn">Create Wishlist</button>
+                <!-- ===== Additional Wishlist Buttons START =====
+                <button type="submit" class="btn btn-warning" id="update_wishlist-btn">Update Wishlist</button>
+                <button type="submit" class="btn btn-primary" id="search_wishlists-btn">Search Wishlists</button>
+                <button type="submit" class="btn btn-primary" id="clear_form_fields-btn">Clear Form Fields</button>
+                <button type="submit" class="btn btn-danger" id="clear_wishlist-btn">Clear Wishlist</button>
+                <button type="submit" class="btn btn-info" id="share_wishlist-btn">Share Wishlist</button>
+                ===== Additional Wishlist Buttons END ===== -->
+              </div>
+            </div>
+          </div> <!-- form horizontal -->
+        </div> <!-- end well -->
+      </div> <!-- end Form -->
+
+      <!-- Item Form -->
+      <div class="col-md-12" id="item_form">
+        <h3>Create a Wishlist Item:</h3>
+        <div class="well">
+          <div class="form-horizontal">
+            <div class="form-group">
+              <label class="control-label col-sm-2" for="item_wishlist_id">Wishlist ID:</label>
+              <div class="col-sm-10">
+                <input type="text" class="form-control" id="item_wishlist_id" placeholder="Enter Wishlist ID for Item">
+              </div>
+            </div>
+            <!-- ===== Item Retrieve/Update Helpers START =====
+            <div class="form-group">
+              <label class="control-label col-sm-2" for="item_id">Item ID:</label>
+              <div class="col-sm-6">
+                <input type="text" class="form-control" id="item_id" placeholder="Enter Wishlist Item ID">
+              </div>
+              <div class="col-sm-4">
+                <button type="submit" class="btn btn-info" id="retrieve_item-btn">Retrieve Item</button>
+                <button type="submit" class="btn btn-danger" id="delete_item-btn">Delete Item</button>
+              </div>
+            </div>
+            ===== Item Retrieve/Update Helpers END ===== -->
+            <div class="form-group">
+              <label class="control-label col-sm-2" for="item_product_id">Product ID:</label>
+              <div class="col-sm-10">
+                <input type="number" class="form-control" id="item_product_id" placeholder="Enter Product ID">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="control-label col-sm-2" for="item_product_name">Product Name:</label>
+              <div class="col-sm-10">
+                <input type="text" class="form-control" id="item_product_name" placeholder="Enter Product Name">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="control-label col-sm-2" for="item_price">Price:</label>
+              <div class="col-sm-10">
+                <input type="number" class="form-control" id="item_price" placeholder="Enter Item Price" step="0.01" min="0">
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="col-sm-offset-2 col-sm-10">
+                <button type="submit" class="btn btn-success" id="create_item-btn">Create Item</button>
+                <!-- ===== Additional Item Buttons START =====
+                <button type="submit" class="btn btn-warning" id="update_item-btn">Update Item</button>
+                <button type="submit" class="btn btn-primary" id="search_items-btn">Search Items</button>
+                <button type="submit" class="btn btn-primary" id="clear_item-btn">Clear Item Fields</button>
+                ===== Additional Item Buttons END ===== -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div> <!-- end Item Form -->
+
+      <!-- ===== Search Results Table START =====
+      <div class="table-responsive col-md-12" id="search_results">
+        <table class="table table-striped">
+          <thead>
+          <tr>
+            <th class="col-md-2">ID</th>
+            <th class="col-md-3">Customer ID</th>
+            <th class="col-md-3">Name</th>
+            <th class="col-md-4">Description</th>
+          </tr>
+          </thead>
+        </table>
+      </div>
+      ===== Search Results Table END ===== -->
+
+      <footer>
+        <br><br>
+        <p>&copy; NYU DevOps Company 2022</p>
+      </footer>
+
+    </div> <!-- container -->
+
+  <script type="text/javascript" src = "static/js/jquery-3.6.0.min.js"></script>
+  <script type="text/javascript" src = "static/js/bootstrap.min.js"></script>
+
+  <!-- YOUR REST API -->
+  <script type="text/javascript" src="static/js/rest_api.js"></script>
+
+  </body>
 </html>
