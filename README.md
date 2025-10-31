@@ -48,7 +48,8 @@ Service will run at http://localhost:8080/
 
 | **Method** | **Endpoint**                               | **Purpose / Description**                                         |
 | :--------- | :----------------------------------------- | :---------------------------------------------------------------- |
-| **GET** | / | Get service metadata (root endpoint) |
+| **GET** | `/` | return index.html |
+| **GET** | `/api` | Get service metadata |
 | **GET**    | `/wishlists`                               | Get a list of all wishlists of a customer                         |
 | **GET**    | `/wishlists/{wishlist_id}`                 | Get details of a specific wishlist                                |
 | **POST**   | `/wishlists`                               | Create a new wishlist for a customer                              |
