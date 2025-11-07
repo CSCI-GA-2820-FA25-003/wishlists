@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wishlist
+  labels:
+    app: wishlist
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wishlist
+  template:
+    metadata:
+      labels:
+        app: wishlist
+    spec:
+      containers:
+        - name: wishlist
+          image: cluster-registry:5000/wishlist:1.0
+          imagePullPolicy: IfNotPresent
+          command: ["sh","-lc","exec gunicorn -b 0.0.0.0:8080 wsgi:app"]
+          env:
+            - name: PORT
+              value: "8080"
+            - name: DATABASE_URL
+              value: "sqlite:////tmp/wishlist.db"
+            - name: DATABASE_URI
+              value: "sqlite:////tmp/wishlist.db"
+            - name: SQLALCHEMY_DATABASE_URI
+              value: "sqlite:////tmp/wishlist.db"
+            - name: GUNICORN_WORKERS
+              value: "1"
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
