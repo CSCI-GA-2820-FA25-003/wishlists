@@ -15,4 +15,4 @@ COPY . /app
 # Start Flask with gunicorn
 RUN python -m pip install --no-cache-dir gunicorn
 EXPOSE 8080
-CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]
+CMD ["gunicorn", "-b", "0.0.0.0:8080", "wsgi:app"]
