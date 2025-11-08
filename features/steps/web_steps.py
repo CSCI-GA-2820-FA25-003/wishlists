@@ -196,6 +196,10 @@ def step_impl(context: Any, message: str) -> None:
 def step_impl(context: Any, text_string: str, element_name: str) -> None:
     prefix = get_prefix(context)
     element_id = prefix + element_name.lower().replace(" ", "_")
+
+    # Add debug screenshot
+    # save_screenshot(context, f"before_checking_{element_name}")  # ADD THIS
+
     found = WebDriverWait(context.driver, context.wait_seconds).until(
         expected_conditions.text_to_be_present_in_element_value(
             (By.ID, element_id), text_string

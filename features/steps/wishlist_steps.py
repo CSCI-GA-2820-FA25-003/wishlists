@@ -25,7 +25,8 @@ For information on Waiting until elements are present in the HTML see:
 import requests
 from compare3 import expect
 from selenium import webdriver
-from behave import given  # pylint: disable=no-name-in-module
+from selenium.webdriver.common.by import By
+from behave import given, when  # pylint: disable=no-name-in-module
 
 
 # HTTP Return Codes
@@ -46,3 +47,42 @@ def step_impl(context):
 
     context.driver = webdriver.Chrome(options=options)
     context.base_url = "http://localhost:8080"
+
+
+@given(
+    'an item exists in wishlist with product_id "{product_id}" named "{name}" with price "{price}"'
+)
+def step_impl(context, product_id, name, price):
+    """Create an item in the current wishlist via the API."""
+    assert hasattr(context, "created_wishlist_id"), "No wishlist created yet."
+
+    payload = {
+        "product_id": int(product_id),
+        "product_name": name,
+        "price": float(price),
+    }
+    response = requests.post(
+        f"{context.base_url}/wishlists/{context.created_wishlist_id}/items",
+        json=payload,
+        headers={"Content-Type": "application/json"},
+        timeout=WAIT_TIMEOUT,
+    )
+    assert (
+        response.status_code == HTTP_201_CREATED
+    ), f"Failed to create item: {response.status_code} {response.text}"
+
+    # Save the created item and its ID to context
+    context.created_item = response.json()
+    context.created_item_id = context.created_item.get("id")
+    assert context.created_item_id, "Item id was not returned by the service."
+
+
+@when("I copy the created wishlist id into the wishlist field")
+def step_impl(context):
+    """Populate the wishlist ID field with the previously created wishlist."""
+    assert (
+        hasattr(context, "created_wishlist_id") and context.created_wishlist_id
+    ), "No wishlist id is available in context."
+    element = context.driver.find_element(By.ID, "wishlist_id")
+    element.clear()
+    element.send_keys(str(context.created_wishlist_id))

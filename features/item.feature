@@ -10,3 +10,17 @@ Feature: Manage wishlist items
     And I set the "Price" to "199.99"
     And I press the "Create Item" button
     Then I should see the message "Wishlist item created successfully"
+
+    Scenario: Retrieve a specific wishlist item from the UI
+      Given the Flask wishlist service is running
+      And no wishlist exists for customer "CUST-RETRIEVE" named "Electronics"
+      And a wishlist exists for customer "CUST-RETRIEVE" named "Electronics"
+      And an item exists in wishlist with product_id "2001" named "Laptop" with price "999.99"
+      When I visit the "Home Page"
+      And I copy the created wishlist id into the item form
+      And I copy the created item id into the item id field
+      And I press the "Retrieve Item" button
+      Then I should see the message "Item retrieved successfully"
+      And I should see "2001" in the "Product ID" field
+      And I should see "Laptop" in the "Product Name" field
+      And I should see "999.99" in the "Price" field

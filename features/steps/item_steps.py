@@ -108,3 +108,14 @@ def step_impl(context):
     element = context.driver.find_element(By.ID, "item_wishlist_id")
     element.clear()
     element.send_keys(str(context.created_wishlist_id))
+
+
+@when("I copy the created item id into the item id field")
+def step_impl(context):
+    """Populate the item ID field with the previously created item."""
+    assert (
+        hasattr(context, "created_item_id") and context.created_item_id
+    ), "No item id is available in context. Create an item before using this step."
+    element = context.driver.find_element(By.ID, "item_id")
+    element.clear()
+    element.send_keys(str(context.created_item_id))
