@@ -23,7 +23,7 @@ $(function () {
         }
     }
 
-    /* ===== Extended Wishlist & Item Features (Optional) START =====
+    // /* ===== Extended Wishlist & Item Features (Optional) START =====
     const $itemId = $("#item_id");
     const $searchResults = $("#search_results");
 
@@ -139,23 +139,50 @@ $(function () {
 
     $("#retrieve_wishlist-btn").click(function () {
         const wishlistId = $wishlistId.val();
+        // console.log("[DEBUG] Retrieve clicked, wishlist ID:", wishlistId);
+        
         if (!wishlistId) {
             flashMessage("Please enter a Wishlist ID to retrieve");
             return;
         }
-
+    
         flashMessage("");
-
+    
         $.ajax({
             type: "GET",
             url: `/wishlists/${wishlistId}`,
             contentType: "application/json",
         })
             .done(function (res) {
+                // console.log("[DEBUG] Wishlist API response:", res);
+                // console.log("[DEBUG] Name from API:", res.name);
+                
                 updateWishlistForm(res);
-                flashMessage("Wishlist retrieved successfully");
+                
+                // console.log("[DEBUG] After updateWishlistForm:");
+                // console.log("[DEBUG]   - wishlist_id field:", $wishlistId.val());
+                // console.log("[DEBUG]   - customer_id field:", $wishlistCustomerId.val());
+                // console.log("[DEBUG]   - name field:", $wishlistName.val());
+                // console.log("[DEBUG]   - description field:", $wishlistDescription.val());
+                
+                // Also fetch the items for this wishlist
+                $.ajax({
+                    type: "GET",
+                    url: `/wishlists/${wishlistId}/items`,
+                    contentType: "application/json",
+                })
+                    .done(function (items) {
+                        // console.log("[DEBUG] Items API response:", items);
+                        renderItemTable(items);
+                        flashMessage("Wishlist retrieved successfully");
+                    })
+                    .fail(function (err) {
+                        // console.log("[DEBUG] Items fetch failed:", err);
+                        flashMessage("Wishlist retrieved successfully");
+                    });
             })
             .fail(function (res) {
+                // console.log("[DEBUG] Wishlist fetch failed:", res);
                 clearWishlistForm();
                 handleFail(res);
             });
@@ -380,7 +407,7 @@ $(function () {
             })
             .fail(handleFail);
     });
-    ===== Extended Wishlist & Item Features (Optional) END ===== */
+    // ===== Extended Wishlist & Item Features (Optional) END ===== */
 
     $("#create_wishlist-btn").click(function () {
         const payload = {
