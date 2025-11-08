@@ -109,18 +109,23 @@ $(function () {
 
     $("#update_wishlist-btn").click(function () {
         const wishlistId = $wishlistId.val();
+        // console.log("[DEBUG] Update clicked, wishlist ID:", wishlistId);
+        // console.log("[DEBUG] Customer ID:", $wishlistCustomerId.val());
+        // console.log("[DEBUG] Name:", $wishlistName.val());
+        // console.log("[DEBUG] Description:", $wishlistDescription.val());
+        
         if (!wishlistId) {
             flashMessage("Wishlist ID is required for update");
             return;
         }
-
         const data = {
             name: $wishlistName.val(),
             description: $wishlistDescription.val() || null,
         };
-
         flashMessage("");
-
+        
+        // console.log("[DEBUG] Sending PUT request...");
+        
         $.ajax({
             type: "PUT",
             url: `/wishlists/${wishlistId}`,
@@ -131,10 +136,14 @@ $(function () {
             data: JSON.stringify(data),
         })
             .done(function (res) {
+                // console.log("[DEBUG] Update succeeded:", res);
                 updateWishlistForm(res);
                 flashMessage("Wishlist updated successfully");
             })
-            .fail(handleFail);
+            .fail(function (err) {
+                // console.log("[DEBUG] Update failed:", err);
+                handleFail(err);
+            });
     });
 
     $("#retrieve_wishlist-btn").click(function () {

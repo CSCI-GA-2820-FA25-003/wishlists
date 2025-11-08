@@ -29,3 +29,18 @@ Feature: Admin UI loads successfully
     And I should see "CUST-VIEW" in the "Customer ID" field
     And I should see "Watch" in the results
     And I should see "Gift Card" in the results
+
+  Scenario: Update a wishlist name and description
+    Given the Flask wishlist service is running
+    And no wishlist exists for customer "CUST-UPDATE" named "Holiday Gifts"
+    And no wishlist exists for customer "CUST-UPDATE" named "Travel Gifts"
+    And a wishlist exists for customer "CUST-UPDATE" named "Holiday Gifts"
+    When I visit the "Home Page"
+    And I copy the created wishlist id into the wishlist field
+    And I press the "Retrieve Wishlist" button
+    And I change "Wishlist Name" to "Travel Gifts"
+    And I change "Description" to "Gifts for traveling"
+    And I press the "Update Wishlist" button
+    Then I should see the message "Wishlist updated successfully"
+    And I should see "Travel Gifts" in the "Wishlist Name" field
+    And I should see "Gifts for traveling" in the "Description" field
