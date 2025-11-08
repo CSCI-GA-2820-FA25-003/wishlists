@@ -24,3 +24,19 @@ Feature: Manage wishlist items
       And I should see "2001" in the "Product ID" field
       And I should see "Laptop" in the "Product Name" field
       And I should see "999.99" in the "Price" field
+
+    Scenario: Update a wishlist entry
+      Given the Flask wishlist service is running
+      And no wishlist exists for customer "CUST-UPDATE-ITEM" named "Electronics"
+      And a wishlist exists for customer "CUST-UPDATE-ITEM" named "Electronics"
+      And an item exists in wishlist with product_id "3001" named "Camera" with price "499.99"
+      When I visit the "Home Page"
+      And I copy the created wishlist id into the item form
+      And I copy the created item id into the item id field
+      And I press the "Retrieve Item" button
+      And I change "Product Name" to "GoPro"
+      And I change "Price" to "599.99"
+      And I press the "Update Item" button
+      Then I should see the message "Item updated successfully"
+      And I should see "GoPro" in the "Product Name" field
+      And I should see "599.99" in the "Price" field
