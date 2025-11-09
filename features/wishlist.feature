@@ -44,3 +44,14 @@ Feature: Admin UI loads successfully
     Then I should see the message "Wishlist updated successfully"
     And I should see "Travel Gifts" in the "Wishlist Name" field
     And I should see "Gifts for traveling" in the "Description" field
+
+  Scenario: List all wishlists without filters
+    Given the Flask wishlist service is running
+    And no wishlist exists for customer "CUST-LIST-A" named "Alpha"
+    And no wishlist exists for customer "CUST-LIST-B" named "Beta"
+    And a wishlist exists for customer "CUST-LIST-A" named "Alpha"
+    And a wishlist exists for customer "CUST-LIST-B" named "Beta"
+    When I visit the "Home Page"
+    And I press the "Search Wishlists" button
+    Then I should see "Alpha" in the results
+    And I should see "Beta" in the results

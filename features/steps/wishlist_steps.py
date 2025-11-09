@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ######################################################################
+# pylint: disable=function-redefined, missing-function-docstring
+# flake8: noqa
 
 """
 Wishlist Steps
@@ -23,7 +25,6 @@ For information on Waiting until elements are present in the HTML see:
     https://selenium-python.readthedocs.io/waits.html
 """
 import requests
-from compare3 import expect
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from behave import given, when  # pylint: disable=no-name-in-module
