@@ -113,21 +113,9 @@ def step_impl(context):
     element.send_keys(str(context.created_wishlist_id))
 
 
-@when('I set the "Filter Wishlists" field to "{text}"')
-def step_impl(context, text):
-    """In Filter Wishlists Enter the keyword"""
-    _set_input_by_id(context, "filter_wishlist_name", text)
-
-
-@when('I press the "Search Wishlists" filter button')
-def step_impl(context):
-    """Click Filter session's Search Wishlists Button"""
-    _click_by_id(context, "filter_wishlists-btn")
-
-
 @then('I should see "{text}" in the wishlist results')
 def step_impl(context, text):
-    """Verify wishlist Result have Keyword"""
+    """Verify wishlist results contain expected text."""
     body = _container_text(context, "search_results")
     assert text in body, f'"{text}" not found in wishlist results'
 

@@ -12,10 +12,6 @@ $(function () {
     const $itemProductName = $("#item_product_name");
     const $itemPrice = $("#item_price");
 
-    const $filterWishlistName = $("#filter_wishlist_name");
-    const $filterItemWishlistId = $("#filter_item_wishlist_id");
-    const $filterItemName = $("#filter_item_name");
-
     function handleFail(res, fallback) {
         const message = res.responseJSON?.message || res.responseText || fallback || "Server error";
         flashMessage(message);
@@ -97,14 +93,19 @@ $(function () {
         let table = '<table class="table table-striped" cellpadding="10">';
         table += "<thead><tr>";
         table += '<th class="col-md-2">Item ID</th>';
-        table += '<th class="col-md-2">Wishlist ID</th>';
         table += '<th class="col-md-2">Product ID</th>';
         table += '<th class="col-md-4">Product Name</th>';
         table += '<th class="col-md-2">Price</th>';
         table += "</tr></thead><tbody>";
 
         items.forEach((item, index) => {
-            table += `<tr id="item_row_${index}"><td>${item.id ?? ""}</td><td>${item.wishlist_id ?? ""}</td><td>${item.product_id ?? ""}</td><td>${item.product_name ?? ""}</td><td>${item.prices ?? ""}</td></tr>`;
+            const price = (item.price ?? item.prices) ?? "";
+            table += `<tr id="item_row_${index}">
+            <td>${item.id ?? ""}</td>
+            <td>${item.product_id ?? ""}</td>
+            <td>${item.product_name ?? ""}</td>
+            <td>${price}</td>
+            </tr>`;
         });
 
         table += "</tbody></table>";
@@ -228,56 +229,7 @@ $(function () {
         flashMessage("");
         clearWishlistForm();
     });
-    $("#filter_wishlists-btn").click(function () {
-        const keywordRaw = $filterWishlistName.val() || "";
-        const keyword = keywordRaw.trim().toLowerCase();
-        
-        flashMessage("");
-
-        $.ajax({
-            type: "GET",
-            url: "/wishlists", 
-            contentType: "application/json",
-        })
-            .done(function (res) {
-                let data = Array.isArray(res) ? res : [];
-                if (keyword) {
-                    data = data.filter(w => (w.name || "").toLowerCase().includes(keyword));
-                }
-                renderWishlistTable(data);
-                flashMessage("Wishlist filter applied");
-            })
-            .fail(handleFail);
-    });
-    $("#filter_items-btn").click(function () {
-        const wishlistId = $filterItemWishlistId.val();
-        if (!wishlistId) {
-            flashMessage("Wishlist ID is required to filter items");
-            return;
-        }
-
-        const productName = $filterItemName.val() || "";
-        const keyword = productName.trim().toLowerCase();
-
-
-        flashMessage("");
-
-        $.ajax({
-            type: "GET",
-            
-            url: `/wishlists/${encodeURIComponent(wishlistId)}/items`, 
-            contentType: "application/json",
-        })
-            .done(function (res) {
-                let data = Array.isArray(res) ? res : [];
-                if (keyword) {
-                    data = data.filter(it => (it.product_name || "").toLowerCase().includes(keyword));
-                }
-                renderItemTable(data);
-                flashMessage("Item filter applied");
-            })
-            .fail(handleFail);
-    });
+    
     $("#search_wishlists-btn").click(function () {
         const customerId = $wishlistCustomerId.val();
         const name = $wishlistName.val();
@@ -287,7 +239,7 @@ $(function () {
             params.push(`customer_id=${encodeURIComponent(customerId)}`);
         }
         if (name) {
-            params.push(`name=${encodeURIComponent(name)}`);
+            params.push(`name_contains=${encodeURIComponent(name)}`);
         }
 
         const queryString = params.length > 0 ? `?${params.join("&")}` : "";
@@ -365,7 +317,7 @@ $(function () {
         const data = {
             product_id: productIdVal ? Number(productIdVal) : null,
             product_name: $itemProductName.val(),
-            prices: priceVal ? Number(priceVal) : null,
+            price: priceVal ? Number(priceVal) : null,
         };
 
         flashMessage("");
@@ -450,7 +402,7 @@ $(function () {
             params.push(`product_id=${encodeURIComponent(productId)}`);
         }
         if (productName) {
-            params.push(`product_name=${encodeURIComponent(productName)}`);
+            params.push(`product_name_contains=${encodeURIComponent(productName)}`);
         }
         const queryString = params.length > 0 ? `?${params.join("&")}` : "";
 

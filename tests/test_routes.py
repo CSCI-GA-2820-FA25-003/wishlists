@@ -341,6 +341,22 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         )
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_query_wishlists_name_contains(self):
+        """It should filter wishlists by name_contains substring match (case-insensitive)"""
+        w1 = WishlistFactory(name="Holiday Gifts")
+        w2 = WishlistFactory(name="Home Supplies")
+        w1.create()
+        w2.create()
+
+        resp = self.client.get(BASE_URL, query_string={"name_contains": "day"})
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+        data = resp.get_json()
+        names = [wl["name"] for wl in data]
+
+        self.assertEqual(len(data), 1)
+        self.assertIn("Holiday Gifts", names)
+
     ######################################################################
     #  S H A R E   L I N K   T E S T S
     ######################################################################
@@ -864,6 +880,25 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         msg = resp.get_json().get("message", "").lower()
         self.assertIn("unsupported", msg)
         self.assertIn("unknown_param", msg)
+
+    def test_query_items_product_name_contains(self):
+        """It should return items that contain a substring in product_name (case-insensitive)"""
+        wl = WishlistFactory()
+        i1 = ItemFactory(wishlist=wl, product_name="Wooden Speaker", product_id=111)
+        i2 = ItemFactory(
+            wishlist=wl, product_name="Bluetooth Headphones", product_id=222
+        )
+        wl.items.extend([i1, i2])
+        wl.create()
+
+        resp = self.client.get(
+            f"{BASE_URL}/{wl.id}/items", query_string={"product_name_contains": "speak"}
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        data = resp.get_json()
+
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["product_name"], "Wooden Speaker")
 
     ######################################################################
     #  E R R O R   H A N D L E R   T E S T S

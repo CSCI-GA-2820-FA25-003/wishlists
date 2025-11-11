@@ -107,29 +107,39 @@ def list_wishlist_item(wishlist_id: int):
 
     # Validate query parameters
     params = request.args.to_dict(flat=True)
-    allowed = {"product_id", "product_name"}
+    allowed = {"product_id", "product_name", "product_name_contains"}
     unknown = set(params) - allowed
     if unknown:
         abort(
             status.HTTP_400_BAD_REQUEST,
             f"Unsupported query parameter(s): {', '.join(sorted(unknown))}. "
-            "Supported: product_id, product_name",
+            "Supported: product_id, product_name, product_name_contains",
         )
 
-    items = wishlist.items
+    items = list(wishlist.items)
 
     # Optional filtering by product_id (exact integer)
-    if "product_id" in params:
+    if "product_id" in params and str(params["product_id"]).strip() != "":
         try:
             pid = int(params["product_id"])
         except (TypeError, ValueError):
             abort(status.HTTP_400_BAD_REQUEST, "product_id must be an integer")
         items = [it for it in items if it.product_id == pid]
-
+        app.logger.info("Filter product_id == %s -> %d items", pid, len(items))
     # ---- NEW: Optional filtering by product_name (case-insensitive substring) ----
     if "product_name" in params and params["product_name"].strip():
         needle = params["product_name"].strip().lower()
         items = [it for it in items if needle in (it.product_name or "").lower()]
+        app.logger.info(
+            "Filter product_name CONTAINS %r -> %d items", needle, len(items)
+        )
+
+    if "product_name_contains" in params and params["product_name_contains"].strip():
+        needle2 = params["product_name_contains"].strip().lower()
+        items = [it for it in items if needle2 in (it.product_name or "").lower()]
+        app.logger.info(
+            "Filter product_name CONTAINS %r -> %d items", needle2, len(items)
+        )
 
     results = [item.serialize() for item in items]
     return jsonify(results), status.HTTP_200_OK
@@ -428,7 +438,7 @@ def list_wishlists():
     """Returns all of the Wishlists with optional query parameters"""
     app.logger.info("Request for Wishlists list")
     # to examine query parameters
-    allowed_params = ["customer_id", "name"]
+    allowed_params = ["customer_id", "name", "name_contains"]
     query_params = request.args.keys()
     for param in query_params:
         if param not in allowed_params:
@@ -439,32 +449,34 @@ def list_wishlists():
     # ADDED: Get both query parameters
     customer_id = request.args.get("customer_id")
     name = request.args.get("name")
-
+    name_contains = request.args.get("name_contains")
     # ADDED: Validate that name requires customer_id
     if name and not customer_id:
         app.logger.warning("name parameter requires customer_id")
         return abort(
-            status.HTTP_400_BAD_REQUEST, "customer_id is required when querying by name"
+            status.HTTP_400_BAD_REQUEST,
+            "customer_id is required when querying by name",
         )
 
-    wishlists = []
-
     # Process the query string if any
-    if customer_id and name:
-        # ADDED: Filter by both customer_id and name (substring, case-insensitive)
-        app.logger.info("Filtering by customer_id: %s and name: %s", customer_id, name)
-        query_results = Wishlist.find_by_customer(customer_id)
-        # Perform case-insensitive substring match
-        wishlists = [wl for wl in query_results if name.lower() in wl.name.lower()]
-    elif customer_id:
-        app.logger.info("Filtering by customer_id: %s", customer_id)
+    if customer_id:
+        app.logger.info("Base: find_by_customer(%s)", customer_id)
         wishlists = Wishlist.find_by_customer(customer_id)
     else:
-        app.logger.info("Return all wishlists")
+        app.logger.info("Base: all wishlists")
         wishlists = Wishlist.all()
 
-    # Return as an array of dictionaries
-    results = [wishlist.serialize() for wishlist in wishlists]
+    if name:
+        term = name.strip().lower()
+        app.logger.info("Filter: name CONTAINS %r", term)
+        wishlists = [wl for wl in wishlists if term in (wl.name or "").lower()]
+
+    if name_contains:
+        term2 = name_contains.strip().lower()
+        app.logger.info("Filter: name_contains CONTAINS %r", term2)
+        wishlists = [wl for wl in wishlists if term2 in (wl.name or "").lower()]
+
+    results = [wl.serialize() for wl in wishlists]
 
     return jsonify(results), status.HTTP_200_OK
 

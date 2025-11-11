@@ -60,9 +60,9 @@ Feature: Manage wishlist items
     And an item exists in wishlist with product_id "8101" named "Headphones" with price "149.00"
     And an item exists in wishlist with product_id "8102" named "Speaker" with price "89.00"
     When I visit the "Home Page"
-    And I copy the created wishlist id into the filter item wishlist id field
-    And I set the "Filter Items" field to "Head"
-    And I press the "Search Items" filter button
+    And I copy the created wishlist id into the items search wishlist id field
+    And I set the "Product Name" to "Head"
+    And I press the "Search Items" button
     Then I should see "Headphones" in the item results
     And I should not see "Speaker" in the item results
     And I should see "Wishlist Items" in the page header above the item results

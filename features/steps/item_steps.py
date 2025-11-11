@@ -145,25 +145,26 @@ def step_impl(context):
     element.send_keys(str(context.created_item_id))
 
 
-@when("I copy the created wishlist id into the filter item wishlist id field")
+@when("I copy the created wishlist id into the items search wishlist id field")
 def step_impl(context):
-    """Populate the Filter Items Wishlist ID field with the created wishlist id"""
+    """Put the created wishlist id into the main Items search Wishlist ID field"""
     assert getattr(context, "created_wishlist_id", None), "No wishlist id in context"
-    _set_input_by_id(
-        context, "filter_item_wishlist_id", str(context.created_wishlist_id)
-    )
+    _set_input_by_id(context, "item_wishlist_id", str(context.created_wishlist_id))
 
 
-@when('I set the "Filter Items" field to "{text}"')
+@when('I set the "Product Name" to "{text}"')
 def step_impl(context, text):
-    """Enter the search keyword into the Filter Items input field"""
-    _set_input_by_id(context, "filter_item_name", text)
+    """Type the keyword into the main Product Name field used by Search Items"""
+    _set_input_by_id(context, "item_product_name", text)
 
 
-@when('I press the "Search Items" filter button')
+@when('I press the "Search Items" button')
 def step_impl(context):
-    """Click the Search Items button in the filter section"""
-    _click_by_id(context, "filter_items-btn")
+    """Click the main Search Items button (backend query with product_name_contains)"""
+    _click_by_id(context, "search_items-btn")
+
+
+# ===== END replacements =====
 
 
 @then('I should see "{text}" in the item results')
@@ -182,7 +183,7 @@ def step_impl(context, text):
 
 @then('I should see "Wishlist Items" in the page header above the item results')
 def step_impl(context):
-    """Verify that the <h3> header is still present above the item results (not removed by .empty())"""
+    """Verify that the <h3> header is still present above the item results"""
     header = (
         WebDriverWait(context.driver, WAIT_TIMEOUT)
         .until(EC.presence_of_element_located((By.CSS_SELECTOR, "#item_results h3")))

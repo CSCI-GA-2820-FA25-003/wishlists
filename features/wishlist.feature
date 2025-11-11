@@ -61,7 +61,8 @@ Feature: Admin UI loads successfully
     And no wishlist exists for customer "CUST-FILTER-WL" named "Holiday Shopping"
     And a wishlist exists for customer "CUST-FILTER-WL" named "Holiday Shopping"
     When I visit the "Home Page"
-    And I set the "Filter Wishlists" field to "Holiday"
-    And I press the "Search Wishlists" filter button
+    And I set the "Customer ID" to "CUST-FILTER-WL"
+    And I set the "Wishlist Name" to "Holiday"
+    And I press the "Search Wishlists" button
     Then I should see "Holiday Shopping" in the wishlist results
     And I should see "Wishlist" in the page header above the wishlist results
