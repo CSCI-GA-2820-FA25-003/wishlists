@@ -55,3 +55,13 @@ Feature: Admin UI loads successfully
     And I press the "Search Wishlists" button
     Then I should see "Alpha" in the results
     And I should see "Beta" in the results
+
+  Scenario: Filter wishlists by partial name
+    Given the Flask wishlist service is running
+    And no wishlist exists for customer "CUST-FILTER-WL" named "Holiday Shopping"
+    And a wishlist exists for customer "CUST-FILTER-WL" named "Holiday Shopping"
+    When I visit the "Home Page"
+    And I set the "Filter Wishlists" field to "Holiday"
+    And I press the "Search Wishlists" filter button
+    Then I should see "Holiday Shopping" in the wishlist results
+    And I should see "Wishlist" in the page header above the wishlist results

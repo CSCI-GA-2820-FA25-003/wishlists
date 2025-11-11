@@ -138,9 +138,48 @@
           </div>
         </div>
       </div> <!-- end Item Form -->
+      <!-- Filter Wishlists Form -->
+      <div class="col-md-12" id="filter_form">
+        <h3>Search & Filter</h3>
+        <div class="well">
+          <div class="form-horizontal">
 
+            <div class="form-group">
+              <label class="control-label col-sm-2" for="filter_wishlist_name">Filter Wishlists:</label>
+              <div class="col-sm-8">
+                <input type="text" class="form-control" id="filter_wishlist_name" placeholder="Enter Wishlist Name (e.g., Holiday)">
+              </div>
+              <div class="col-sm-2">
+                <button type="button" class="btn btn-primary" id="filter_wishlists-btn">Search Wishlists</button>
+              </div>
+            </div>
+
+            <hr>
+
+            <div class="form-group">
+              <label class="control-label col-sm-2" for="filter_item_wishlist_id">Wishlist ID:</label>
+              <div class="col-sm-10">
+                <input type="text" class="form-control" id="filter_item_wishlist_id" placeholder="Enter Wishlist ID to search its items">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="control-label col-sm-2" for="filter_item_name">Filter Items:</label>
+              <div class="col-sm-8">
+                <input type="text" class="form-control" id="filter_item_name" placeholder="Enter Product Name (e.g., Tent)">
+              </div>
+              <div class="col-sm-2">
+                <button type="button" class="btn btn-primary" id="filter_items-btn">Search Items</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+      
       <!-- ===== Search Results Table START ===== -->
       <div class="table-responsive col-md-12" id="search_results">
+        <h3>Wishlist</h3>
         <table class="table table-striped">
           <thead>
           <tr>
@@ -152,6 +191,20 @@
           </thead>
         </table>
       </div>
+      <div class="table-responsive col-md-12" id="item_results">
+        <h3>Wishlist Items</h3>
+        <table class="table table-striped">
+          <thead>
+          <tr>
+            <th class="col-md-2">Item ID</th>
+            <th class="col-md-2">Product ID</th>
+            <th class="col-md-5">Product Name</th>
+            <th class="col-md-3">Price</th>
+          </tr>
+          </thead>
+          <tbody></tbody> 
+        </table>
+      </div><!-- end Item Form -->
       <!-- ===== Search Results Table END ===== -->
 
       <footer>

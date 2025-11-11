@@ -7,9 +7,14 @@ $(function () {
     const $wishlistDescription = $("#wishlist_description");
 
     const $itemWishlistId = $("#item_wishlist_id");
+    const $itemId = $("#item_id");
     const $itemProductId = $("#item_product_id");
     const $itemProductName = $("#item_product_name");
     const $itemPrice = $("#item_price");
+
+    const $filterWishlistName = $("#filter_wishlist_name");
+    const $filterItemWishlistId = $("#filter_item_wishlist_id");
+    const $filterItemName = $("#filter_item_name");
 
     function handleFail(res, fallback) {
         const message = res.responseJSON?.message || res.responseText || fallback || "Server error";
@@ -24,8 +29,8 @@ $(function () {
     }
 
     // /* ===== Extended Wishlist & Item Features (Optional) START =====
-    const $itemId = $("#item_id");
     const $searchResults = $("#search_results");
+    const $itemResults = $("#item_results");
 
     function updateWishlistForm(data) {
         $wishlistId.val(data.id ?? "");
@@ -59,7 +64,7 @@ $(function () {
     }
 
     function renderWishlistTable(wishlists) {
-        $searchResults.empty();
+        $("#search_results").find("table").remove();
         if (!wishlists || wishlists.length === 0) {
             $searchResults.append("<p>No wishlists found.</p>");
             return;
@@ -83,9 +88,9 @@ $(function () {
     }
 
     function renderItemTable(items) {
-        $searchResults.empty();
+        $("#item_results").find("table").remove();
         if (!items || items.length === 0) {
-            $searchResults.append("<p>No items found.</p>");
+            $itemResults.append("<p>No items found.</p>");
             return;
         }
 
@@ -103,7 +108,7 @@ $(function () {
         });
 
         table += "</tbody></table>";
-        $searchResults.append(table);
+        $itemResults.append(table);
         updateItemForm(items[0]);
     }
 
@@ -223,7 +228,56 @@ $(function () {
         flashMessage("");
         clearWishlistForm();
     });
+    $("#filter_wishlists-btn").click(function () {
+        const keywordRaw = $filterWishlistName.val() || "";
+        const keyword = keywordRaw.trim().toLowerCase();
+        
+        flashMessage("");
 
+        $.ajax({
+            type: "GET",
+            url: "/wishlists", 
+            contentType: "application/json",
+        })
+            .done(function (res) {
+                let data = Array.isArray(res) ? res : [];
+                if (keyword) {
+                    data = data.filter(w => (w.name || "").toLowerCase().includes(keyword));
+                }
+                renderWishlistTable(data);
+                flashMessage("Wishlist filter applied");
+            })
+            .fail(handleFail);
+    });
+    $("#filter_items-btn").click(function () {
+        const wishlistId = $filterItemWishlistId.val();
+        if (!wishlistId) {
+            flashMessage("Wishlist ID is required to filter items");
+            return;
+        }
+
+        const productName = $filterItemName.val() || "";
+        const keyword = productName.trim().toLowerCase();
+
+
+        flashMessage("");
+
+        $.ajax({
+            type: "GET",
+            
+            url: `/wishlists/${encodeURIComponent(wishlistId)}/items`, 
+            contentType: "application/json",
+        })
+            .done(function (res) {
+                let data = Array.isArray(res) ? res : [];
+                if (keyword) {
+                    data = data.filter(it => (it.product_name || "").toLowerCase().includes(keyword));
+                }
+                renderItemTable(data);
+                flashMessage("Item filter applied");
+            })
+            .fail(handleFail);
+    });
     $("#search_wishlists-btn").click(function () {
         const customerId = $wishlistCustomerId.val();
         const name = $wishlistName.val();

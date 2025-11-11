@@ -52,3 +52,17 @@ Feature: Manage wishlist items
     And I press the "Search Items" button
     Then I should see "Sling" in the results
     And I should see "Backpack" in the results
+
+  Scenario: Filter items in a wishlist by partial product name
+    Given the Flask wishlist service is running
+    And no wishlist exists for customer "CUST-FILTER-IT" named "Audio"
+    And a wishlist exists for customer "CUST-FILTER-IT" named "Audio"
+    And an item exists in wishlist with product_id "8101" named "Headphones" with price "149.00"
+    And an item exists in wishlist with product_id "8102" named "Speaker" with price "89.00"
+    When I visit the "Home Page"
+    And I copy the created wishlist id into the filter item wishlist id field
+    And I set the "Filter Items" field to "Head"
+    And I press the "Search Items" filter button
+    Then I should see "Headphones" in the item results
+    And I should not see "Speaker" in the item results
+    And I should see "Wishlist Items" in the page header above the item results

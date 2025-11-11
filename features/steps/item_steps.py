@@ -24,8 +24,10 @@ For information on Waiting until elements are present in the HTML see:
     https://selenium-python.readthedocs.io/waits.html
 """
 import requests
-from behave import given, when  # pylint: disable=no-name-in-module
+from behave import given, when, then  # pylint: disable=no-name-in-module
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 # HTTP Return Codes
 HTTP_200_OK = 200
@@ -34,6 +36,28 @@ HTTP_204_NO_CONTENT = 204
 HTTP_409_CONFLICT = 409
 
 WAIT_TIMEOUT = 60
+
+
+def _set_input_by_id(context, element_id, value):
+    el = WebDriverWait(context.driver, WAIT_TIMEOUT).until(
+        EC.presence_of_element_located((By.ID, element_id))
+    )
+    el.clear()
+    el.send_keys(value)
+
+
+def _click_by_id(context, element_id):
+    el = WebDriverWait(context.driver, WAIT_TIMEOUT).until(
+        EC.element_to_be_clickable((By.ID, element_id))
+    )
+    el.click()
+
+
+def _container_text(context, container_id):
+    el = WebDriverWait(context.driver, WAIT_TIMEOUT).until(
+        EC.presence_of_element_located((By.ID, container_id))
+    )
+    return el.text
 
 
 @given('no wishlist exists for customer "{customer_id}" named "{name}"')
@@ -119,3 +143,49 @@ def step_impl(context):
     element = context.driver.find_element(By.ID, "item_id")
     element.clear()
     element.send_keys(str(context.created_item_id))
+
+
+@when("I copy the created wishlist id into the filter item wishlist id field")
+def step_impl(context):
+    """Populate the Filter Items Wishlist ID field with the created wishlist id"""
+    assert getattr(context, "created_wishlist_id", None), "No wishlist id in context"
+    _set_input_by_id(
+        context, "filter_item_wishlist_id", str(context.created_wishlist_id)
+    )
+
+
+@when('I set the "Filter Items" field to "{text}"')
+def step_impl(context, text):
+    """Enter the search keyword into the Filter Items input field"""
+    _set_input_by_id(context, "filter_item_name", text)
+
+
+@when('I press the "Search Items" filter button')
+def step_impl(context):
+    """Click the Search Items button in the filter section"""
+    _click_by_id(context, "filter_items-btn")
+
+
+@then('I should see "{text}" in the item results')
+def step_impl(context, text):
+    """Verify that the item results contain the expected text"""
+    body = _container_text(context, "item_results")
+    assert text in body, f'"{text}" not found in item results'
+
+
+@then('I should not see "{text}" in the item results')
+def step_impl(context, text):
+    """Verify that the item results do not contain the unexpected text"""
+    body = _container_text(context, "item_results")
+    assert text not in body, f'Unexpected "{text}" found in item results'
+
+
+@then('I should see "Wishlist Items" in the page header above the item results')
+def step_impl(context):
+    """Verify that the <h3> header is still present above the item results (not removed by .empty())"""
+    header = (
+        WebDriverWait(context.driver, WAIT_TIMEOUT)
+        .until(EC.presence_of_element_located((By.CSS_SELECTOR, "#item_results h3")))
+        .text
+    )
+    assert "Wishlist Items" in header, "Wishlist Items header not visible"

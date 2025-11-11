@@ -26,8 +26,10 @@ For information on Waiting until elements are present in the HTML see:
 """
 import requests
 from selenium import webdriver
+from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
-from behave import given, when  # pylint: disable=no-name-in-module
+from selenium.webdriver.support import expected_conditions as EC
+from behave import given, when, then  # pylint: disable=no-name-in-module
 
 
 # HTTP Return Codes
@@ -36,6 +38,28 @@ HTTP_201_CREATED = 201
 HTTP_204_NO_CONTENT = 204
 
 WAIT_TIMEOUT = 60
+
+
+def _set_input_by_id(context, element_id, value):
+    el = WebDriverWait(context.driver, WAIT_TIMEOUT).until(
+        EC.presence_of_element_located((By.ID, element_id))
+    )
+    el.clear()
+    el.send_keys(value)
+
+
+def _click_by_id(context, element_id):
+    el = WebDriverWait(context.driver, WAIT_TIMEOUT).until(
+        EC.element_to_be_clickable((By.ID, element_id))
+    )
+    el.click()
+
+
+def _container_text(context, container_id):
+    el = WebDriverWait(context.driver, WAIT_TIMEOUT).until(
+        EC.presence_of_element_located((By.ID, container_id))
+    )
+    return el.text
 
 
 @given("the Flask wishlist service is running")
@@ -87,3 +111,33 @@ def step_impl(context):
     element = context.driver.find_element(By.ID, "wishlist_id")
     element.clear()
     element.send_keys(str(context.created_wishlist_id))
+
+
+@when('I set the "Filter Wishlists" field to "{text}"')
+def step_impl(context, text):
+    """In Filter Wishlists Enter the keyword"""
+    _set_input_by_id(context, "filter_wishlist_name", text)
+
+
+@when('I press the "Search Wishlists" filter button')
+def step_impl(context):
+    """Click Filter session's Search Wishlists Button"""
+    _click_by_id(context, "filter_wishlists-btn")
+
+
+@then('I should see "{text}" in the wishlist results')
+def step_impl(context, text):
+    """Verify wishlist Result have Keyword"""
+    body = _container_text(context, "search_results")
+    assert text in body, f'"{text}" not found in wishlist results'
+
+
+@then('I should see "Wishlist" in the page header above the wishlist results')
+def step_impl(context):
+    """Verify the heading still exist when click button"""
+    header = (
+        WebDriverWait(context.driver, WAIT_TIMEOUT)
+        .until(EC.presence_of_element_located((By.CSS_SELECTOR, "#search_results h3")))
+        .text
+    )
+    assert "Wishlist" in header, "Wishlist header not visible above results"
