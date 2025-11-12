@@ -27,7 +27,9 @@ For information on Waiting until elements are present in the HTML see:
 import requests
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from behave import given, when  # pylint: disable=no-name-in-module
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from behave import given, when, then  # pylint: disable=no-name-in-module
 
 
 # HTTP Return Codes
@@ -87,3 +89,84 @@ def step_impl(context):
     element = context.driver.find_element(By.ID, "wishlist_id")
     element.clear()
     element.send_keys(str(context.created_wishlist_id))
+
+
+@then('neither "{wishlist_name}" nor "{item_name}" should appear in the list')
+def step_impl(context, wishlist_name, item_name):
+
+    name_input = context.driver.find_element(By.ID, "wishlist_wishlist_name")
+    name_input.clear()
+    name_input.send_keys(wishlist_name)
+
+    search_btn = context.driver.find_element(By.ID, "search_wishlists-btn")
+    search_btn.click()
+
+    table = context.driver.find_element(
+        By.CSS_SELECTOR, "#search_results table.table-striped"
+    )
+
+    tbodys = table.find_elements(By.TAG_NAME, "tbody")
+    text = ""
+    if tbodys:
+        text = tbodys[0].text
+
+    assert (
+        wishlist_name not in text
+    ), f'Unexpectedly found wishlist "{wishlist_name}" in results.'
+    assert item_name not in text, f'Unexpectedly found item "{item_name}" in results.'
+
+
+@when('I click the "Delete Wishlist" button')
+def step_impl(context):
+    btn = context.driver.find_element(By.ID, "delete_wishlist-btn")
+    btn.click()
+
+    try:
+        WebDriverWait(context.driver, 5).until(
+            EC.text_to_be_present_in_element((By.ID, "flash_message"), "deleted")
+        )
+    except Exception:
+        pass
+
+
+@when("I copy the created wishlist id into the wishlist form")
+def step_impl(context):
+    """Open Home Page and fill the wishlist id field with the created id."""
+    assert (
+        hasattr(context, "created_wishlist_id") and context.created_wishlist_id
+    ), "No wishlist id found in context. You must create one first."
+
+    context.driver.get(context.base_url)
+
+    WebDriverWait(context.driver, WAIT_TIMEOUT).until(
+        EC.presence_of_element_located((By.TAG_NAME, "body"))
+    )
+    WebDriverWait(context.driver, WAIT_TIMEOUT).until(
+        EC.presence_of_element_located((By.ID, "wishlist_id"))
+    )
+
+    element = context.driver.find_element(By.ID, "wishlist_id")
+    element.clear()
+    element.send_keys(str(context.created_wishlist_id))
+
+
+@then('"Temp List" should not appear in the list')
+def step_impl(context):
+    """Verify that the deleted wishlist no longer appears in the search results"""
+    name_input = context.driver.find_element(By.ID, "wishlist_wishlist_name")
+    name_input.clear()
+    name_input.send_keys("Temp List")
+
+    search_btn = context.driver.find_element(By.ID, "search_wishlists-btn")
+    search_btn.click()
+
+    table = context.driver.find_element(
+        By.CSS_SELECTOR, "#search_results table.table-striped"
+    )
+
+    tbodys = table.find_elements(By.TAG_NAME, "tbody")
+    text = tbodys[0].text if tbodys else ""
+
+    assert (
+        "Temp List" not in text
+    ), 'Unexpectedly found deleted wishlist "Temp List" in results.'
