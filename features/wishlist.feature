@@ -90,3 +90,11 @@ Feature: Admin UI loads successfully
     When I copy the created wishlist id into the wishlist form
     And I click the "Delete Wishlist" button
     Then "Temp List" should not appear in the list
+
+  Scenario: Clear wishlist and share wishlist
+    Given the Flask wishlist service is running
+    And a wishlist named "Holiday Gifts"
+    When I click "Share" for that wishlist
+    And I click "Clear" for that wishlist
+    Then the wishlist link should show
+    And the wishlist should show as empty
