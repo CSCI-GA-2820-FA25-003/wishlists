@@ -104,7 +104,7 @@ def step_impl(context, customer_id, name):
 @when("I copy the created wishlist id into the item form")
 def step_impl(context):
 
-    context.driver.get(context.base_url)  # 确保在主页面
+    context.driver.get(context.base_url)
 
     WebDriverWait(context.driver, 20).until(
         EC.presence_of_element_located((By.TAG_NAME, "body"))

@@ -21,12 +21,11 @@ This service implements a REST API that allows you to Create, Read, Update
 and Delete Wishlist
 """
 from decimal import Decimal
-from flask import jsonify, request, url_for, abort
+import os
+from flask import jsonify, request, url_for, abort, send_from_directory
 from flask import current_app as app  # Import Flask application
 from service.models import Wishlist, Item
 from service.common import status  # HTTP Status Codes
-from flask import send_from_directory
-import os
 
 
 ############################################################
