@@ -42,6 +42,17 @@ When ready, start the service:
 honcho start
 ```
 
+3. Deploying to Kubernetes
+
+   This service can also be deployed locally to a Kubernetes cluster using the provided Makefile commands:
+
+```bash
+make cluster        # create a local k3d cluster
+make build          # build the Docker image
+make push           # push image to local registry
+make deploy         # deploy all manifests under ./k8s
+```
+
 Service will run at http://localhost:8080/
 
 ## API Documents
@@ -170,6 +181,22 @@ pytest -q
 
 Expected coverage: ≥ 95%
 
+## Behavior-Driven Development (BDD) Tests
+
+We implemented an admin UI and corresponding BDD tests using **Behave** and **Selenium** to verify end-to-end functionality (Create, Read, Update, Delete, List, Query, and Action).
+
+### Running BDD Tests
+
+```bash
+flask run
+```
+
+Then, in another terminal:
+
+```bash
+behave
+```
+
 ## Development Workflow
 
 1. Create a feature branch
@@ -207,41 +234,63 @@ git push origin feature/<task-name>
 The project contains the following:
 
 ```text
-.gitignore          - this will ignore vagrant and other metadata files
-.flaskenv           - Environment variables to configure Flask
-.gitattributes      - File to gix Windows CRLF issues
-.devcontainers/     - Folder with support for VSCode Remote Containers
-dot-env-example     - copy to .env to use environment variables
-pyproject.toml      - Poetry list of Python libraries required by your code
-.github/
-├── ISSUE_TEMPLATE/ - issue templates for bug/feature reports
-└── workflows/      - GitHub Actions workflows for CI/CD
-    └── ci.yml      - main CI pipeline definition    
-
-
-service/                    - main service package
-├── __init__.py             - package initializer
-├── config.py               - configuration parameters
-├── routes.py               - Flask route definitions for all endpoints
-├── models/                 - package containing data models
-│   ├── __init__.py         - model package initializer
-│   ├── persistent_base.py  - base model with shared DB logic
-│   ├── wishlist.py         - Wishlist model class
-│   └── item.py             - Item model class
+.
+├── Dockerfile                - Docker build instructions
+├── LICENSE                   - Apache 2.0 license
+├── Makefile                  - Automation commands
+├── Pipfile                   - Python dependencies for dev environment
+├── Pipfile.lock              - Locked dependency versions
+├── Procfile                  - Process definition for Honcho/Gunicorn
+├── README.md                 - Project documentation
+├── dot-env-example           - Example environment variable file
+├── setup.cfg                 - Linting and formatting configuration
+├── wsgi.py                   - WSGI entry point for Gunicorn
 │
-└── common/                 - common utilities package
-    ├── cli_commands.py     - Flask CLI command to recreate all tables
-    ├── error_handlers.py   - HTTP error handling code
-    ├── log_handlers.py     - logging setup code
-    └── status.py           - HTTP status constants
-
-tests/                     - test cases package
-├── __init__.py            - package initializer
-├── factories.py           - Factory for testing with fake objects
-├── test_cli_commands.py   - test suite for the CLI
-├── test_models.py         - test suite for business models
-├── test_routes.py         - test suite for service routes
-└── test_wishlist.py       - test suite for wishlist features
+├── features/                 - BDD test scenarios and step definitions
+│   ├── environment.py        - Behave environment setup
+│   ├── item.feature          - BDD feature tests for wishlist items
+│   ├── wishlist.feature      - BDD feature tests for wishlists
+│   └── steps/
+│       ├── item_steps.py     - Step definitions for item operations
+│       ├── web_steps.py      - Browser UI interaction helpers
+│       └── wishlist_steps.py - Step definitions for wishlist operations
+│
+├── k8s/                      - Kubernetes deployment manifests
+│   ├── deployment.yaml       - App Deployment (Flask service)
+│   ├── ingress.yaml          - Ingress route for external access
+│   ├── service.yaml          - ClusterIP Service for Flask app
+│   └── postgres/             - PostgreSQL StatefulSet & config files
+│       ├── configmap.yaml
+│       ├── pvc.yaml
+│       ├── secret.yaml
+│       ├── service.yaml
+│       └── statefulset.yaml
+│
+├── service/                  - Flask application source code
+│   ├── __init__.py
+│   ├── config.py             - Application configuration
+│   ├── routes.py             - API route definitions
+│   ├── common/               - Shared utilities
+│   │   ├── cli_commands.py   - CLI for DB initialization
+│   │   ├── error_handlers.py - Error handling and HTTP codes
+│   │   ├── log_handlers.py   - Logging setup
+│   │   └── status.py         - HTTP status constants
+│   ├── models/               - Data models and ORM logic
+│   │   ├── persistent_base.py
+│   │   ├── wishlist.py
+│   │   └── item.py
+│   └── static/               - Web UI files
+│       ├── css/
+│       ├── images/
+│       ├── js/
+│       └── index.html        - Admin UI for wishlists
+│
+└── tests/                    - Pytest unit and integration tests
+    ├── factories.py          - Factory for generating test data
+    ├── test_cli_commands.py  - CLI command tests
+    ├── test_item.py          - Wishlist item model tests
+    ├── test_routes.py        - API endpoint tests
+    └── test_wishlist.py      - Wishlist model tests
 ```
 
 ## License
