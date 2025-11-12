@@ -55,3 +55,30 @@ Feature: Admin UI loads successfully
     And I press the "Search Wishlists" button
     Then I should see "Alpha" in the results
     And I should see "Beta" in the results
+
+  Scenario: Query wishlists by customer filter
+    Given the Flask wishlist service is running
+    And no wishlist exists for customer "CUST-QUERY-1" named "Preferred Gifts"
+    And no wishlist exists for customer "CUST-QUERY-2" named "Other Gifts"
+    And a wishlist exists for customer "CUST-QUERY-1" named "Preferred Gifts"
+    And a wishlist exists for customer "CUST-QUERY-2" named "Other Gifts"
+    When I visit the "Home Page"
+    And I set the "Customer ID" to "CUST-QUERY-1"
+    And I press the "Search Wishlists" button
+    Then I should see the message "Wishlist search completed"
+    And I should see "Preferred Gifts" in the results
+    And I should not see "Other Gifts" in the results
+
+  Scenario: Query wishlists by partial name filter
+    Given the Flask wishlist service is running
+    And no wishlist exists for customer "CUST-QUERY-NAME" named "Camping Gear"
+    And no wishlist exists for customer "CUST-QUERY-NAME" named "Office Gear"
+    And a wishlist exists for customer "CUST-QUERY-NAME" named "Camping Gear"
+    And a wishlist exists for customer "CUST-QUERY-NAME" named "Office Gear"
+    When I visit the "Home Page"
+    And I set the "Customer ID" to "CUST-QUERY-NAME"
+    And I set the "Wishlist Name" to "Camp"
+    And I press the "Search Wishlists" button
+    Then I should see the message "Wishlist search completed"
+    And I should see "Camping Gear" in the results
+    And I should not see "Office Gear" in the results
