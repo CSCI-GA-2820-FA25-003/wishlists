@@ -25,6 +25,8 @@ from flask import jsonify, request, url_for, abort
 from flask import current_app as app  # Import Flask application
 from service.models import Wishlist, Item
 from service.common import status  # HTTP Status Codes
+from flask import send_from_directory
+import os
 
 
 ############################################################
@@ -42,7 +44,8 @@ def health():
 @app.route("/")
 def index():
     """Return the Admin UI page"""
-    return app.send_static_file("index.html")
+    static_dir = os.path.join(os.path.dirname(__file__), "static")
+    return send_from_directory(static_dir, "index.html")
 
 
 ######################################################################

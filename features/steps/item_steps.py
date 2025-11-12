@@ -26,6 +26,8 @@ For information on Waiting until elements are present in the HTML see:
 import requests
 from behave import given, when  # pylint: disable=no-name-in-module
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 # HTTP Return Codes
 HTTP_200_OK = 200
@@ -101,10 +103,16 @@ def step_impl(context, customer_id, name):
 
 @when("I copy the created wishlist id into the item form")
 def step_impl(context):
-    """Populate the item form's wishlist ID with the previously created wishlist."""
-    assert (
-        hasattr(context, "created_wishlist_id") and context.created_wishlist_id
-    ), "No wishlist id is available in context. Create one before using this step."
+
+    context.driver.get(context.base_url)  # 确保在主页面
+
+    WebDriverWait(context.driver, 20).until(
+        EC.presence_of_element_located((By.TAG_NAME, "body"))
+    )
+    WebDriverWait(context.driver, 20).until(
+        EC.presence_of_element_located((By.ID, "item_wishlist_id"))
+    )
+
     element = context.driver.find_element(By.ID, "item_wishlist_id")
     element.clear()
     element.send_keys(str(context.created_wishlist_id))
@@ -119,3 +127,38 @@ def step_impl(context):
     element = context.driver.find_element(By.ID, "item_id")
     element.clear()
     element.send_keys(str(context.created_item_id))
+
+
+@when('I click the "Delete Item" button')
+def step_impl(context):
+    btn = context.driver.find_element(By.ID, "delete_item-btn")
+    btn.click()
+
+
+@when(
+    'an item exists in wishlist with product_id "{product_id}" named "{product_name}" with price "{price}"'
+)
+def step_impl(context, product_id, product_name, price):
+    """Create an item in a given wishlist via API"""
+    assert hasattr(context, "created_wishlist_id"), "Wishlist ID not found in context!"
+    wishlist_id = context.created_wishlist_id
+
+    payload = {
+        "product_id": int(product_id),
+        "product_name": product_name,
+        "price": float(price),
+    }
+    response = requests.post(
+        f"{context.base_url}/wishlists/{wishlist_id}/items",
+        json=payload,
+        headers={"Content-Type": "application/json"},
+        timeout=WAIT_TIMEOUT,
+    )
+
+    assert response.status_code in [
+        HTTP_200_OK,
+        HTTP_201_CREATED,
+    ], f"Failed to create item: {response.status_code}, {response.text}"
+    item = response.json()
+    context.created_item_id = item.get("id")
+    assert context.created_item_id, "Item ID not returned from API"

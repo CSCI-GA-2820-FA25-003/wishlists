@@ -500,3 +500,74 @@ $(function () {
             });
     });
 });
+
+// --- helpers ---
+function flash(message) {
+  $("#flash_message").text(message);
+}
+function ensureResultsTbody() {
+  const table = $("#search_results table.table-striped");
+  if (table.find("tbody").length === 0) {
+    table.append("<tbody></tbody>");
+  }
+  return table.find("tbody");
+}
+function clearWishlistForm() {
+  $("#wishlist_id").val("");
+  $("#wishlist_customer_id").val("");
+  $("#wishlist_wishlist_name").val("");
+  $("#wishlist_description").val("");
+}
+function clearItemForm() {
+  $("#item_wishlist_id").val("");
+  $("#item_id").val("");
+  $("#item_product_id").val("");
+  $("#item_product_name").val("");
+  $("#item_price").val("");
+}
+
+// --- Delete Wishlist ---
+$("#delete_wishlist-btn").click(async function (e) {
+  e.preventDefault();
+  const id = $("#wishlist_id").val().trim();
+  if (!id) {
+    flash("Please enter a Wishlist ID to delete.");
+    return;
+  }
+  try {
+    const resp = await fetch(`/wishlists/${id}`, { method: "DELETE" });
+    if (resp.status === 204) {
+      flash(`Wishlist ${id} deleted`);
+      clearWishlistForm();
+      ensureResultsTbody().empty();
+    } else {
+      const body = await resp.text();
+      flash(`Delete wishlist failed: ${resp.status} ${body}`);
+    }
+  } catch (err) {
+    flash(`Delete wishlist error: ${err}`);
+  }
+});
+
+// --- Delete Item ---
+$("#delete_item-btn").click(async function (e) {
+  e.preventDefault();
+  const wid = $("#item_wishlist_id").val().trim();
+  const iid = $("#item_id").val().trim();
+  if (!wid || !iid) {
+    flash("Please enter Wishlist ID and Item ID to delete an item.");
+    return;
+  }
+  try {
+    const resp = await fetch(`/wishlists/${wid}/items/${iid}`, { method: "DELETE" });
+    if (resp.status === 204) {
+      flash(`Item ${iid} deleted from wishlist ${wid}`);
+      clearItemForm();
+    } else {
+      const body = await resp.text();
+      flash(`Delete item failed: ${resp.status} ${body}`);
+    }
+  } catch (err) {
+    flash(`Delete item error: ${err}`);
+  }
+});

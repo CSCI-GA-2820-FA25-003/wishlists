@@ -27,7 +27,7 @@ For information on Waiting until elements are present in the HTML see:
 import requests
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from behave import given, when  # pylint: disable=no-name-in-module
+from behave import given, when, then  # pylint: disable=no-name-in-module
 
 
 # HTTP Return Codes
@@ -87,3 +87,34 @@ def step_impl(context):
     element = context.driver.find_element(By.ID, "wishlist_id")
     element.clear()
     element.send_keys(str(context.created_wishlist_id))
+
+
+@then('neither "{wishlist_name}" nor "{item_name}" should appear in the list')
+def step_impl(context, wishlist_name, item_name):
+
+    name_input = context.driver.find_element(By.ID, "wishlist_wishlist_name")
+    name_input.clear()
+    name_input.send_keys(wishlist_name)
+
+    search_btn = context.driver.find_element(By.ID, "search_wishlists-btn")
+    search_btn.click()
+
+    table = context.driver.find_element(
+        By.CSS_SELECTOR, "#search_results table.table-striped"
+    )
+
+    tbodys = table.find_elements(By.TAG_NAME, "tbody")
+    text = ""
+    if tbodys:
+        text = tbodys[0].text
+
+    assert (
+        wishlist_name not in text
+    ), f'Unexpectedly found wishlist "{wishlist_name}" in results.'
+    assert item_name not in text, f'Unexpectedly found item "{item_name}" in results.'
+
+
+@when('I click the "Delete Wishlist" button')
+def step_impl(context):
+    btn = context.driver.find_element(By.ID, "delete_wishlist-btn")
+    btn.click()
