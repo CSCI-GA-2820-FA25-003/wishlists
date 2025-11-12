@@ -24,8 +24,10 @@ For information on Waiting until elements are present in the HTML see:
     https://selenium-python.readthedocs.io/waits.html
 """
 import requests
-from behave import given, when  # pylint: disable=no-name-in-module
+from behave import given, when, then  # pylint: disable=no-name-in-module
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 # HTTP Return Codes
 HTTP_200_OK = 200
@@ -99,17 +101,6 @@ def step_impl(context, customer_id, name):
     )
 
 
-@when("I copy the created wishlist id into the item form")
-def step_impl(context):
-    """Populate the item form's wishlist ID with the previously created wishlist."""
-    assert (
-        hasattr(context, "created_wishlist_id") and context.created_wishlist_id
-    ), "No wishlist id is available in context. Create one before using this step."
-    element = context.driver.find_element(By.ID, "item_wishlist_id")
-    element.clear()
-    element.send_keys(str(context.created_wishlist_id))
-
-
 @when("I copy the created item id into the item id field")
 def step_impl(context):
     """Populate the item ID field with the previously created item."""
@@ -119,3 +110,62 @@ def step_impl(context):
     element = context.driver.find_element(By.ID, "item_id")
     element.clear()
     element.send_keys(str(context.created_item_id))
+
+
+@when(
+    'an item exists in wishlist with product_id "{product_id}" named "{name}" with price "{price}"'
+)
+def step_impl(context, product_id, name, price):
+    """Create an item in the current wishlist via API."""
+    assert hasattr(context, "created_wishlist_id"), "No wishlist created yet."
+    payload = {
+        "product_id": int(product_id),
+        "product_name": name,
+        "price": float(price),
+    }
+    response = requests.post(
+        f"{context.base_url}/wishlists/{context.created_wishlist_id}/items",
+        json=payload,
+        headers={"Content-Type": "application/json"},
+        timeout=WAIT_TIMEOUT,
+    )
+    assert response.status_code in [
+        HTTP_201_CREATED,
+        HTTP_200_OK,
+    ], f"Failed to create item: {response.status_code} {response.text}"
+    context.created_item = response.json()
+    context.created_item_id = context.created_item.get("id")
+    assert context.created_item_id, "Item ID not returned by service."
+
+
+@when('I click the "Delete Item" button')
+def step_impl(context):
+    """Click the Delete Item button."""
+    WebDriverWait(context.driver, 10).until(
+        EC.presence_of_element_located((By.ID, "delete_item-btn"))
+    )
+    btn = context.driver.find_element(By.ID, "delete_item-btn")
+    btn.click()
+
+
+@then('"{item_name}" should not appear in the item list')
+def step_impl(context, item_name):
+    """Verify the deleted item no longer appears in the item list."""
+    WebDriverWait(context.driver, 10).until(
+        EC.presence_of_element_located((By.ID, "search_results"))
+    )
+    table = context.driver.find_element(By.ID, "search_results")
+    text = table.text
+    assert item_name not in text, f'Item "{item_name}" was still found in the list.'
+
+
+@when("I copy the created wishlist id into the item form")
+def step_impl(context):
+    """Wait for and fill in the wishlist id field on the item form."""
+    assert hasattr(context, "created_wishlist_id"), "No wishlist id available."
+    WebDriverWait(context.driver, 10).until(
+        EC.presence_of_element_located((By.ID, "item_wishlist_id"))
+    )
+    element = context.driver.find_element(By.ID, "item_wishlist_id")
+    element.clear()
+    element.send_keys(str(context.created_wishlist_id))
