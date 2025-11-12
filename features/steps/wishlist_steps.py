@@ -170,3 +170,123 @@ def step_impl(context):
     assert (
         "Temp List" not in text
     ), 'Unexpectedly found deleted wishlist "Temp List" in results.'
+
+
+@given('a wishlist named "{name}"')
+def step_impl(context, name):
+    """Create a wishlist via the API with a default customer ID and navigate to the homepage."""
+    customer_id = "CUST-ACTION"
+
+    # First ensure no conflicting wishlist exists
+    response = requests.get(
+        f"{context.base_url}/wishlists",
+        params={"customer_id": customer_id, "name": name},
+        timeout=WAIT_TIMEOUT,
+    )
+    assert response.status_code == HTTP_200_OK, (
+        f"Failed to query wishlists for cleanup. Status: {response.status_code}, "
+        f"Body: {response.text}"
+    )
+    for wishlist in response.json():
+        requests.delete(
+            f"{context.base_url}/wishlists/{wishlist['id']}",
+            timeout=WAIT_TIMEOUT,
+        )
+
+    # Create the wishlist
+    payload = {
+        "customer_id": customer_id,
+        "name": name,
+        "description": f"Wishlist for action testing: {name}",
+    }
+    response = requests.post(
+        f"{context.base_url}/wishlists",
+        json=payload,
+        headers={"Content-Type": "application/json"},
+        timeout=WAIT_TIMEOUT,
+    )
+    assert (
+        response.status_code == HTTP_201_CREATED
+    ), f"Failed to create wishlist: {response.status_code} {response.text}"
+
+    context.created_wishlist = response.json()
+    context.created_wishlist_id = context.created_wishlist.get("id")
+    assert context.created_wishlist_id, "Wishlist id was not returned by the service."
+
+    # Navigate to the homepage and populate the wishlist ID field
+    context.driver.get(context.base_url)
+    WebDriverWait(context.driver, WAIT_TIMEOUT).until(
+        EC.presence_of_element_located((By.TAG_NAME, "body"))
+    )
+    WebDriverWait(context.driver, WAIT_TIMEOUT).until(
+        EC.presence_of_element_located((By.ID, "wishlist_id"))
+    )
+
+    # Fill in the wishlist ID
+    element = context.driver.find_element(By.ID, "wishlist_id")
+    element.clear()
+    element.send_keys(str(context.created_wishlist_id))
+
+
+@when('I click "{button_text}" for that wishlist')
+def step_impl(context, button_text):
+    """Click a button identified by its text, for the current wishlist."""
+    button_id = button_text.lower().replace(" ", "_") + "_wishlist-btn"
+    button = WebDriverWait(context.driver, WAIT_TIMEOUT).until(
+        EC.element_to_be_clickable((By.ID, button_id))
+    )
+    button.click()
+
+    # If this is the Share button, capture the share URL from flash message
+    if button_text.lower() == "share":
+        # Wait for the flash message to update
+        WebDriverWait(context.driver, WAIT_TIMEOUT).until(
+            EC.text_to_be_present_in_element((By.ID, "flash_message"), "Share URL")
+        )
+        # Store the share link for later verification
+        flash_element = context.driver.find_element(By.ID, "flash_message")
+        links = flash_element.find_elements(By.TAG_NAME, "a")
+        if links:
+            context.share_url = links[0].get_attribute("href")
+
+    # Wait a moment for the action to complete
+    import time
+
+    time.sleep(0.5)
+
+
+@then("the wishlist link should show")
+def step_impl(context):
+    """Verify that the share link was captured during the Share action."""
+    assert (
+        hasattr(context, "share_url") and context.share_url
+    ), "No share URL was captured. Make sure the Share button was clicked first."
+
+    assert f"/wishlists/{context.created_wishlist_id}" in context.share_url, (
+        f"Share URL does not contain the correct wishlist ID. "
+        f"Expected ID: {context.created_wishlist_id}, Got URL: {context.share_url}"
+    )
+
+
+@then("the wishlist should show as empty")
+def step_impl(context):
+    """Verify that the wishlist has no items by retrieving it and checking the items list."""
+    # Retrieve the wishlist to check its items
+    retrieve_btn = context.driver.find_element(By.ID, "retrieve_wishlist-btn")
+    retrieve_btn.click()
+
+    # Wait for the results to load
+    WebDriverWait(context.driver, WAIT_TIMEOUT).until(
+        EC.presence_of_element_located((By.ID, "search_results"))
+    )
+
+    # Check that the search results show "No items found" or the items table is empty
+    search_results = context.driver.find_element(By.ID, "search_results")
+    results_text = search_results.text
+
+    # Either "No items found" message should appear, or the table should be empty
+    # The retrieve action also fetches items and displays them in the results table
+    assert (
+        "No items found" in results_text
+        or len(search_results.find_elements(By.CSS_SELECTOR, "table tbody tr")) == 0
+    ), f"Expected wishlist to be empty, but found items in results: {results_text}"
