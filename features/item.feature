@@ -52,3 +52,31 @@ Feature: Manage wishlist items
     And I press the "Search Items" button
     Then I should see "Sling" in the results
     And I should see "Backpack" in the results
+
+  Scenario: Query wishlist items by product name
+    Given the Flask wishlist service is running
+    And no wishlist exists for customer "CUST-ITEM-QUERY" named "Outdoor Gear"
+    And a wishlist exists for customer "CUST-ITEM-QUERY" named "Outdoor Gear"
+    And an item exists in wishlist with product_id "8101" named "Tent" with price "150.00"
+    And an item exists in wishlist with product_id "8102" named "Lantern" with price "35.00"
+    When I visit the "Home Page"
+    And I copy the created wishlist id into the item form
+    And I set the "Product Name" to "Tent"
+    And I press the "Search Items" button
+    Then I should see the message "Item search completed"
+    And I should see "Tent" in the results
+    And I should not see "Lantern" in the results
+
+  Scenario: Query wishlist items by product id
+    Given the Flask wishlist service is running
+    And no wishlist exists for customer "CUST-ITEM-QUERY2" named "Gadgets"
+    And a wishlist exists for customer "CUST-ITEM-QUERY2" named "Gadgets"
+    And an item exists in wishlist with product_id "9101" named "Smartwatch" with price "220.00"
+    And an item exists in wishlist with product_id "9102" named "Earbuds" with price "89.00"
+    When I visit the "Home Page"
+    And I copy the created wishlist id into the item form
+    And I set the "Product ID" to "9101"
+    And I press the "Search Items" button
+    Then I should see the message "Item search completed"
+    And I should see "Smartwatch" in the results
+    And I should not see "Earbuds" in the results
