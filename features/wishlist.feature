@@ -82,3 +82,11 @@ Feature: Admin UI loads successfully
     Then I should see the message "Wishlist search completed"
     And I should see "Camping Gear" in the results
     And I should not see "Office Gear" in the results
+
+  Scenario: Delete a wishlist
+    Given the Flask wishlist service is running
+    And no wishlist exists for customer "99999" named "Temp List"
+    And a wishlist exists for customer "99999" named "Temp List"
+    When I copy the created wishlist id into the wishlist form
+    And I click the "Delete Wishlist" button
+    Then "Temp List" should not appear in the list
