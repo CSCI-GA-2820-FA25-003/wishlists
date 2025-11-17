@@ -60,3 +60,4 @@ spec:
       workspaces:
         - name: output
           workspace: pipeline-workspace
+          
