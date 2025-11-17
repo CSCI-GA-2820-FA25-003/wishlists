@@ -24,6 +24,7 @@ Steps file for Wishlist.feature
 For information on Waiting until elements are present in the HTML see:
     https://selenium-python.readthedocs.io/waits.html
 """
+import os
 import requests
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -49,7 +50,9 @@ def step_impl(context):
     options.add_argument("--disable-dev-shm-usage")
 
     context.driver = webdriver.Chrome(options=options)
-    context.base_url = "http://localhost:8080"
+    # print("DEBUG >>> ENV BASE_URL =", os.getenv("BASE_URL"))
+    context.base_url = os.getenv("BASE_URL", "http://localhost:8080")
+    # context.base_url = "http://localhost:8080"
 
 
 @given(
