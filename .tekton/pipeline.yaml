@@ -104,6 +104,8 @@ spec:
             value: buildah
           - name: namespace
             value: openshift-pipelines
+          - name: version
+            value: "0.9"
       runAfter:
         - git-clone
       params:
