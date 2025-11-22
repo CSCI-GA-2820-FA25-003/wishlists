@@ -11,6 +11,14 @@ spec:
       type: string
       description: The reference (branch or ref)
       default: master
+    - name: IMAGE_NAME
+      type: string
+      description: The name of the image to build
+      default: wishlists
+    - name: IMAGE_TAG
+      type: string
+      description: The tag for the image
+      default: latest
 
   workspaces:
     - name: pipeline-workspace
@@ -60,4 +68,49 @@ spec:
       workspaces:
         - name: output
           workspace: pipeline-workspace
-          
+
+    # TODO: Add lint task here (e.g., pylint)
+    # - name: lint
+    #   taskRef:
+    #     name: pylint
+    #   runAfter:
+    #     - git-clone
+    #   workspaces:
+    #     - name: source
+    #       workspace: pipeline-workspace
+
+    # TODO: Add test task here (e.g., pytest-env)
+    # - name: test
+    #   taskRef:
+    #     name: pytest-env
+    #   runAfter:
+    #     - git-clone
+    #   workspaces:
+    #     - name: source
+    #       workspace: pipeline-workspace
+
+    # Build task - Currently runs after git-clone
+    # TODO: Update runAfter to include lint and test when they are added:
+    #   runAfter:
+    #     - lint
+    #     - test
+    - name: build
+      taskRef:
+        resolver: cluster
+        params:
+          - name: kind
+            value: task
+          - name: name
+            value: buildah
+          - name: namespace
+            value: openshift-pipelines
+          - name: version
+            value: "0.9"
+      runAfter:
+        - git-clone
+      params:
+        - name: IMAGE
+          value: "image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/$(params.IMAGE_NAME):$(params.IMAGE_TAG)"
+      workspaces:
+        - name: source
+          workspace: pipeline-workspace
