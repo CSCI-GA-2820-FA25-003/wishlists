@@ -114,3 +114,17 @@ spec:
       workspaces:
         - name: source
           workspace: pipeline-workspace
+    # Deploy task - Deploys the application to Kubernetes
+    - name: deploy
+      taskRef:
+        name: deploy-image
+      runAfter:
+        - build
+      params:
+        - name: image-name
+          value: "image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/$(params.IMAGE_NAME):$(params.IMAGE_TAG)"
+        - name: manifest-dir
+          value: "k8s"
+      workspaces:
+        - name: source
+          workspace: pipeline-workspace
