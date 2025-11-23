@@ -88,6 +88,19 @@ spec:
     #   workspaces:
     #     - name: source
     #       workspace: pipeline-workspace
+    - name: test
+      taskRef:
+        name: pytest-env
+      runAfter:
+        - git-clone
+      params:
+        - name: pytest-args
+          value:
+            - "--cov=service"
+            - "--cov-fail-under=95"
+      workspaces:
+        - name: source
+          workspace: pipeline-workspace
 
     # Build task - Currently runs after git-clone
     # TODO: Update runAfter to include lint and test when they are added:
