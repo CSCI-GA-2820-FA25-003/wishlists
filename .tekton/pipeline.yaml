@@ -95,7 +95,9 @@ spec:
         - git-clone
       params:
         - name: pytest-args
-          value: []
+          value:
+            - "--cov=service"
+            - "--cov-fail-under=95"
       workspaces:
         - name: source
           workspace: pipeline-workspace
