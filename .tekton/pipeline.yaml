@@ -88,6 +88,19 @@ spec:
     #   workspaces:
     #     - name: source
     #       workspace: pipeline-workspace
+    - name: test
+      taskRef:
+        name: pytest-env
+      runAfter:
+        - git-clone
+      params:
+        - name: pytest-args
+          value:
+            - "--cov=service"
+            - "--cov-fail-under=95"
+      workspaces:
+        - name: source
+          workspace: pipeline-workspace
 
     # Build task - Currently runs after git-clone
     # TODO: Update runAfter to include lint and test when they are added:
@@ -111,6 +124,20 @@ spec:
       params:
         - name: IMAGE
           value: "image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/$(params.IMAGE_NAME):$(params.IMAGE_TAG)"
+      workspaces:
+        - name: source
+          workspace: pipeline-workspace
+    # Deploy task - Deploys the application to Kubernetes
+    - name: deploy
+      taskRef:
+        name: deploy-image
+      runAfter:
+        - build
+      params:
+        - name: image-name
+          value: "image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/$(params.IMAGE_NAME):$(params.IMAGE_TAG)"
+        - name: manifest-dir
+          value: "k8s"
       workspaces:
         - name: source
           workspace: pipeline-workspace
