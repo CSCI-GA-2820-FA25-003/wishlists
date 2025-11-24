@@ -3,40 +3,36 @@
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-  name: pylint
+  name: lint
   labels:
     app.kubernetes.io/version: "0.4"
   annotations:
     tekton.dev/categories: Code Quality
     tekton.dev/pipelines.minVersion: "0.17.0"
-    tekton.dev/tags: python, pylint, poetry
-    tekton.dev/displayName: "pylint"
+    tekton.dev/tags: python, flake8, pylint, poetry
+    tekton.dev/displayName: "lint"
     tekton.dev/platforms: "linux/amd64,linux/s390x,linux/ppc64le"
 spec:
   workspaces:
     - name: source
       description: The workspace with the source code.
   description: >-
-    Use to run pylint on the provided input source. 
+    Use to run flake8 and pylint on the provided input source. 
     If Poetry or Pipenv is being used it will detect 
     the poetry.lock and Pipfile file and install using them.
   params:
     - name: image
-      description: The container image with pylint
+      description: The container image with Python
       default: quay.io/rofrano/python:3.11-slim
     - name: path
-      description: The path to the module which should be analyzed by pylint
-      default: "."
+      description: The path to the module which should be analyzed
+      default: "service tests"
       type: string
-    - name: args
-      description: The arguments to pass to the pylint CLI.
-      type: array
-      default: []
     - name: requirements-file
       description: The name of the requirements file inside the source location
       default: "requirements.txt"
   steps:
-    - name: pylint
+    - name: lint
       image: $(params.image)
       workingDir: $(workspaces.source.path)
       script: |
@@ -58,13 +54,15 @@ spec:
           python -m pip install --user -r "$(params.requirements-file)"
         fi
 
-        # Make sure pylint is installed
-        python -m pip install pylint
+        # Make sure linting tools are installed
+        python -m pip install flake8 pylint
 
-        echo "***** Running Linting *****"
-        pylint $@ "$(params.path)"
-      args:
-        - "$(params.args)"
+        echo "***** Running flake8 *****"
+        flake8 $(params.path) --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 $(params.path) --count --max-complexity=10 --max-line-length=127 --statistics
+
+        echo "***** Running pylint *****"
+        pylint $(params.path) --max-line-length=127
 
 ---
 apiVersion: tekton.dev/v1beta1
