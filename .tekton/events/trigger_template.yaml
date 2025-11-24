@@ -8,28 +8,25 @@ spec:
     description: The git repository url
   - name: git-revision
     description: The git revision
-    default: master
   - name: git-repo-name
     description: The name of the deployment to be created / patched
 
   resourcetemplates:
-  - apiVersion: tekton.dev/v1
+  - apiVersion: tekton.dev/v1beta1
     kind: PipelineRun
     metadata:
-      generateName: cd-pipeline-run-
+      generateName: cd-pipeline-$(tt.params.git-repo-name)-
     spec:
       serviceAccountName: pipeline
       pipelineRef:
         name: cd-pipeline
       params:
+      - name: APP_NAME
+        value: $(tt.params.git-repo-name)
       - name: GIT_REPO
         value: $(tt.params.git-repo-url)
-      - name: GIT_REF
-        value: $(tt.params.git-revision)
       - name: IMAGE_NAME
-        value: $(tt.params.git-repo-name)
-      - name: IMAGE_TAG
-        value: $(tt.params.git-revision)
+        value: image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/$(tt.params.git-repo-name):$(tt.params.git-revision)
       workspaces:
       - name: pipeline-workspace
         persistentVolumeClaim:
