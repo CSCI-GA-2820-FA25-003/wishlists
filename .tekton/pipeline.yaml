@@ -69,25 +69,17 @@ spec:
         - name: output
           workspace: pipeline-workspace
 
-    # TODO: Add lint task here (e.g., pylint)
-    # - name: lint
-    #   taskRef:
-    #     name: pylint
-    #   runAfter:
-    #     - git-clone
-    #   workspaces:
-    #     - name: source
-    #       workspace: pipeline-workspace
+    # Lint task - Runs flake8 and pylint in parallel with test
+    - name: lint
+      taskRef:
+        name: lint
+      runAfter:
+        - git-clone
+      workspaces:
+        - name: source
+          workspace: pipeline-workspace
 
-    # TODO: Add test task here (e.g., pytest-env)
-    # - name: test
-    #   taskRef:
-    #     name: pytest-env
-    #   runAfter:
-    #     - git-clone
-    #   workspaces:
-    #     - name: source
-    #       workspace: pipeline-workspace
+    # Test task - Runs unit tests in parallel with lint
     - name: test
       taskRef:
         name: pytest-env
@@ -102,11 +94,7 @@ spec:
         - name: source
           workspace: pipeline-workspace
 
-    # Build task - Currently runs after git-clone
-    # TODO: Update runAfter to include lint and test when they are added:
-    #   runAfter:
-    #     - lint
-    #     - test
+    # Build task - Runs after both lint and test complete successfully
     - name: build
       taskRef:
         resolver: cluster
@@ -120,7 +108,8 @@ spec:
           - name: version
             value: "0.9"
       runAfter:
-        - git-clone
+        - lint
+        - test
       params:
         - name: IMAGE
           value: "image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/$(params.IMAGE_NAME):$(params.IMAGE_TAG)"
