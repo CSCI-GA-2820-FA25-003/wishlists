@@ -11,14 +11,17 @@ spec:
       type: string
       description: The reference (branch or ref)
       default: master
+    - name: APP_NAME
+      type: string
+      description: Name of application
+      default: wishlist
     - name: IMAGE_NAME
       type: string
       description: The name of the image to build
-      default: wishlists
-    - name: IMAGE_TAG
+      default: "image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/$(params.APP_NAME):latest"
+    - name: BASE_URL
       type: string
-      description: The tag for the image
-      default: latest
+      description: The URL to the wishlist service
 
   workspaces:
     - name: pipeline-workspace
@@ -69,33 +72,46 @@ spec:
         - name: output
           workspace: pipeline-workspace
 
-    # Lint task - Runs flake8 and pylint in parallel with test
-    - name: lint
-      taskRef:
-        name: lint
+    - name: pytest-env
       runAfter:
         - git-clone
-      workspaces:
-        - name: source
-          workspace: pipeline-workspace
-
-    # Test task - Runs unit tests in parallel with lint
-    - name: test
       taskRef:
+        kind: Task
         name: pytest-env
-      runAfter:
-        - git-clone
       params:
         - name: pytest-args
           value:
-            - "--cov=service"
             - "--cov-fail-under=95"
+            - "--cov=service"
+        - name: secret-name
+          value: postgres-creds
+        - name: secret-key
+          value: database_uri
       workspaces:
         - name: source
           workspace: pipeline-workspace
 
-    # Build task - Runs after both lint and test complete successfully
-    - name: build
+    - name: lint
+      runAfter:
+        - git-clone
+      taskRef:
+        kind: Task
+        name: lint
+      params:
+        - name: image
+          value: "quay.io/rofrano/python:3.11-slim"
+        - name: path
+          value: service tests
+        - name: requirements-file
+          value: requirements.txt
+      workspaces:
+        - name: source
+          workspace: pipeline-workspace
+
+    - name: buildah
+      runAfter:
+        - pytest-env
+        - lint
       taskRef:
         resolver: cluster
         params:
@@ -105,28 +121,62 @@ spec:
             value: buildah
           - name: namespace
             value: openshift-pipelines
-          - name: version
-            value: "0.9"
-      runAfter:
-        - lint
-        - test
       params:
         - name: IMAGE
-          value: "image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/$(params.IMAGE_NAME):$(params.IMAGE_TAG)"
+          value: $(params.IMAGE_NAME)
+        - name: DOCKERFILE
+          value: ./Dockerfile
+        - name: BUILD_ARGS
+          value:
+            - ""
+        - name: CONTEXT
+          value: .
+        - name: STORAGE_DRIVER
+          value: vfs
+        - name: FORMAT
+          value: oci
+        - name: BUILD_EXTRA_ARGS
+          value: ""
+        - name: PUSH_EXTRA_ARGS
+          value: ""
+        - name: SKIP_PUSH
+          value: "false"
+        - name: TLS_VERIFY
+          value: "true"
+        - name: VERBOSE
+          value: "false"
       workspaces:
         - name: source
           workspace: pipeline-workspace
-    # Deploy task - Deploys the application to Kubernetes
-    - name: deploy
-      taskRef:
-        name: deploy-image
+
+    - name: deploy-image
       runAfter:
-        - build
+        - buildah
+      taskRef:
+        kind: Task
+        name: deploy-image
       params:
         - name: image-name
-          value: "image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/$(params.IMAGE_NAME):$(params.IMAGE_TAG)"
+          value: $(params.IMAGE_NAME)
         - name: manifest-dir
-          value: "k8s"
+          value: k8s
+      workspaces:
+        - name: source
+          workspace: pipeline-workspace
+
+    - name: behave
+      runAfter:
+        - deploy-image
+      taskRef:
+        kind: Task
+        name: behave
+      params:
+        - name: base-url
+          value: $(params.BASE_URL)
+        - name: wait-seconds
+          value: "60"
+        - name: driver
+          value: chrome
       workspaces:
         - name: source
           workspace: pipeline-workspace
