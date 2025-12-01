@@ -23,8 +23,28 @@ and Delete Wishlist
 from decimal import Decimal
 from flask import jsonify, request, url_for, abort
 from flask import current_app as app  # Import Flask application
+from flask_restx import Api
 from service.models import Wishlist, Item
 from service.common import status  # HTTP Status Codes
+
+
+# Document the type of authorization required
+authorizations = {"apikey": {"type": "apiKey", "in": "header", "name": "X-Api-Key"}}
+
+######################################################################
+# Configure Swagger before initializing it
+######################################################################
+api = Api(
+    app,
+    version="1.0.0",
+    title="Wishlist REST API Service",
+    description="RESTful service for managing wishlists.",
+    default="wishlists",
+    default_label="Wishlist operations",
+    doc="/apidocs",  # default also could use doc='/apidocs/'
+    authorizations=authorizations,
+    prefix="/api",
+)
 
 
 ############################################################
@@ -48,7 +68,7 @@ def index():
 ######################################################################
 # GET API INDEX
 ######################################################################
-@app.route("/api")
+@app.route("/api-info")
 def api_index():
     """Root URL response"""
     base = request.host_url.rstrip("/")
