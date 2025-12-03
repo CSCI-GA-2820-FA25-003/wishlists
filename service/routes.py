@@ -654,6 +654,13 @@ def update_wishlist_items(wishlist_id, item_id):
 @api.route("/wishlists/<int:wishlist_id>/share")
 @api.param("wishlist_id", "The Wishlist identifier")
 class ShareWishlistResource(Resource):
+    """
+    ShareWishlistResource class
+
+    Allows generating a shareable link for a wishlist
+    PUT /wishlists/{id}/share - Generate a shareable URL for the wishlist
+    """
+
     @api.doc("share_wishlist")
     @api.response(200, "Share link generated")
     @api.response(404, "Wishlist not found")
