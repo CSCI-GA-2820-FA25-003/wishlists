@@ -30,7 +30,7 @@ from service.common.error_handlers import forbidden, internal_server_error
 DATABASE_URI = os.getenv(
     "DATABASE_URI", "postgresql+psycopg://postgres:postgres@localhost:5432/postgres"
 )
-BASE_URL = "/wishlists"
+BASE_URL = "/api/wishlists"
 
 
 ######################################################################
