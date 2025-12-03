@@ -88,7 +88,7 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
 
     def test_index(self):
         """It should call the home page api"""
-        resp = self.client.get("/api")
+        resp = self.client.get("/api-info")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         data = resp.get_json()
         self.assertEqual(data["name"], "Wishlist Service")
