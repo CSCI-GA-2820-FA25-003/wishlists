@@ -180,52 +180,35 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         data = resp.get_json()
         self.assertEqual(len(data), 5)
 
-    # def test_create_wishlist(self):
-    #     """It should Create a new Wishlist"""
-    #     wishlist = WishlistFactory()
-    #     resp = self.client.post(
-    #         BASE_URL,
-    #         json=wishlist.serialize(),
-    #         content_type="application/json",
-    #         headers=self._get_auth_headers(),
-    #     )
-    #     self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+    def test_create_wishlist(self):
+        """It should Create a new Wishlist"""
+        wishlist = WishlistFactory()
+        resp = self.client.post(
+            BASE_URL,
+            json=wishlist.serialize(),
+            content_type="application/json",
+            headers=self._get_auth_headers(),
+        )
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
 
-    #     # Make sure location header is set
-    #     location = resp.headers.get("Location", None)
-    #     self.assertIsNotNone(location)
+        # Make sure location header is set
+        location = resp.headers.get("Location", None)
+        self.assertIsNotNone(location)
 
-    #     # Check the data is correct
-    #     new_wishlist = resp.get_json()
-    #     self.assertEqual(
-    #         new_wishlist["customer_id"],
-    #         wishlist.customer_id,
-    #         "Customer IDs do not match",
-    #     )
-    #     self.assertEqual(new_wishlist["name"], wishlist.name, "Names do not match")
-    #     self.assertEqual(
-    #         new_wishlist["description"],
-    #         wishlist.description,
-    #         "Descriptions do not match",
-    #     )
-    #     self.assertEqual(new_wishlist["items"], wishlist.items, "Items do not match")
-
-    #     # Check that the location header was correct by getting it
-    #     resp = self.client.get(location, content_type="application/json")
-    #     self.assertEqual(resp.status_code, status.HTTP_200_OK)
-    #     new_wishlist = resp.get_json()
-    #     self.assertEqual(
-    #         new_wishlist["customer_id"],
-    #         wishlist.customer_id,
-    #         "Customer IDs do not match",
-    #     )
-    #     self.assertEqual(new_wishlist["name"], wishlist.name, "Names do not match")
-    #     self.assertEqual(
-    #         new_wishlist["description"],
-    #         wishlist.description,
-    #         "Descriptions do not match",
-    #     )
-    #     # self.assertEqual(new_wishlist["items"], wishlist.items, "Items do not match")
+        # Check the data is correct
+        new_wishlist = resp.get_json()
+        self.assertEqual(
+            new_wishlist["customer_id"],
+            wishlist.customer_id,
+            "Customer IDs do not match",
+        )
+        self.assertEqual(new_wishlist["name"], wishlist.name, "Names do not match")
+        self.assertEqual(
+            new_wishlist["description"],
+            wishlist.description,
+            "Descriptions do not match",
+        )
+        # self.assertEqual(new_wishlist["items"], wishlist.items, "Items do not match")
 
     def test_create_wishlist_no_content_type(self):
         """It should return 415 when Content-Type header is missing"""
@@ -365,6 +348,80 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         )
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_create_wishlist_missing_api_key(self):
+        """It should return 401 when API key is missing"""
+        wishlist = WishlistFactory()
+        resp = self.client.post(
+            BASE_URL,
+            json=wishlist.serialize(),
+            headers={"Content-Type": "application/json"},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_create_wishlist_invalid_api_key(self):
+        """It should return 401 when API key is invalid"""
+        wishlist = WishlistFactory()
+        resp = self.client.post(
+            BASE_URL,
+            json=wishlist.serialize(),
+            headers={"Content-Type": "application/json", "X-Api-Key": "wrong-key"},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_update_wishlist_description(self):
+        """It should update wishlist description"""
+        created = self._create_wishlists(1)[0]
+        wishlist_id = created.id
+        owner_id = created.customer_id
+
+        # Update description
+        resp = self.client.put(
+            f"{BASE_URL}/{wishlist_id}",
+            json={"description": "New description here"},
+            headers=self._get_auth_headers(customer_id=owner_id),
+        )
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        body = resp.get_json()
+        self.assertEqual(body["description"], "New description here")
+
+    def test_update_wishlist_name_and_description(self):
+        """It should update both name and description"""
+        created = self._create_wishlists(1)[0]
+        wishlist_id = created.id
+        owner_id = created.customer_id
+
+        # Update both
+        resp = self.client.put(
+            f"{BASE_URL}/{wishlist_id}",
+            json={"name": "Updated Name", "description": "Updated Description"},
+            headers=self._get_auth_headers(customer_id=owner_id),
+        )
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        body = resp.get_json()
+        self.assertEqual(body["name"], "Updated Name")
+        self.assertEqual(body["description"], "Updated Description")
+
+    def test_update_wishlist_missing_api_key(self):
+        """It should return 401 when updating without API key"""
+        wishlist = self._create_wishlists(1)[0]
+        resp = self.client.put(
+            f"{BASE_URL}/{wishlist.id}",
+            json={"name": "New Name"},
+            headers={
+                "Content-Type": "application/json",
+                "X-Customer-Id": wishlist.customer_id,
+            },
+        )
+        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_delete_wishlist_missing_api_key(self):
+        """It should return 401 when deleting without API key"""
+        wishlist = self._create_wishlists(1)[0]
+        resp = self.client.delete(f"{BASE_URL}/{wishlist.id}")
+        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
+
     ######################################################################
     #  S H A R E   L I N K   T E S T S
     ######################################################################
@@ -389,13 +446,13 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
     ######################################################################
     #  I T E M   T E S T   C A S E S
     ######################################################################
-    # def test_list_items_on_empty_wishlist(self):
-    #     """It should Get an empty list of Items for an empty Wishlist"""
-    #     wishlist = self._create_wishlists(1)[0]
-    #     resp = self.client.get(f"{BASE_URL}/{wishlist.id}/items")
-    #     self.assertEqual(resp.status_code, status.HTTP_200_OK)
-    #     data = resp.get_json()
-    #     self.assertEqual(len(data), 0)
+    def test_list_items_on_empty_wishlist(self):
+        """It should Get an empty list of Items for an empty Wishlist"""
+        wishlist = self._create_wishlists(1)[0]
+        resp = self.client.get(f"{BASE_URL}/{wishlist.id}/items")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        data = resp.get_json()
+        self.assertEqual(len(data), 0)
 
     #     # def test_get_wishlist_item(self):
     #     #     """It should Get a single Item from a Wishlist"""
@@ -747,6 +804,11 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         data = resp.get_json()
         self.assertIn("was not found", data["message"].lower())
 
+    def test_query_with_invalid_parameter(self):
+        """It should return 400 Bad Request for an invalid query parameter"""
+        resp = self.client.get(BASE_URL, query_string="invalid_param=bad_value")
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_query_wishlist_by_customer_id(self):
         """It should Query wishlists by customer_id"""
 
@@ -925,10 +987,4 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
             json=payload,
             headers={"Content-Type": "application/json"},
         )
-        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
-
-    # 2.
-    def test_query_with_invalid_parameter(self):
-        """It should return 400 Bad Request for an invalid query parameter"""
-        resp = self.client.get(BASE_URL, query_string="invalid_param=bad_value")
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
