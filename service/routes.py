@@ -360,7 +360,7 @@ class WishlistCollection(Resource):
 ######################################################################
 # LIST ITEM
 ######################################################################
-@app.route("/wishlists/<int:wishlist_id>/items", methods=["GET"])
+@app.route("/api//wishlists/<int:wishlist_id>/items", methods=["GET"])
 def list_wishlist_item(wishlist_id: int):
     """List Items in a Wishlist with optional filtering by product_id."""
     app.logger.info(
@@ -410,7 +410,7 @@ def list_wishlist_item(wishlist_id: int):
 ######################################################################
 # ADD AN ITEM TO A WISHLIST
 ######################################################################
-@app.route("/wishlists/<int:wishlist_id>/items", methods=["POST"])
+@app.route("/api/wishlists/<int:wishlist_id>/items", methods=["POST"])
 def add_wishlist_item(wishlist_id: int):
     """
     Adds a product Item to a Wishlist
@@ -517,7 +517,7 @@ def add_wishlist_item(wishlist_id: int):
 ######################################################################
 # DELETE A WISHLIST ITEM
 ######################################################################
-@app.route("/wishlists/<int:wishlist_id>/items/<int:item_id>", methods=["DELETE"])
+@app.route("/api/wishlists/<int:wishlist_id>/items/<int:item_id>", methods=["DELETE"])
 def delete_wishlist_items(wishlist_id: int, item_id: int):
     """
     Idempotently delete an Item from a Wishlist.
@@ -582,7 +582,7 @@ def get_wishlist_items(wishlist_id, item_id):
 #################################################################
 # CLEAR A WISHLIST item
 #################################################################
-@app.route("/wishlists/<int:wishlist_id>/clear", methods=["PUT"])
+@app.route("/api/wishlists/<int:wishlist_id>/clear", methods=["PUT"])
 def clear_wishlist(wishlist_id: int):
     """
     Clear all items in the given Wishlist (idempotent).
@@ -611,7 +611,7 @@ def clear_wishlist(wishlist_id: int):
 ######################################################################
 # UPDATE A WISHLIST ITEM
 ######################################################################
-@app.route("/wishlists/<int:wishlist_id>/items/<int:item_id>", methods=["PUT"])
+@app.route("/api/wishlists/<int:wishlist_id>/items/<int:item_id>", methods=["PUT"])
 def update_wishlist_items(wishlist_id, item_id):
     """
     Update a Wishlist Item
