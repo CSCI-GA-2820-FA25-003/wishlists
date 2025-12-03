@@ -294,7 +294,14 @@ class WishlistCollection(Resource):
         args = wishlist_args.parse_args()
         name = args["name"]
         customer_id = args["customer_id"]
-
+        allowed_params = {"name", "customer_id"}
+        request_params = set(request.args.keys())
+        unknown_params = request_params - allowed_params
+        if unknown_params:
+            abort(
+                status.HTTP_400_BAD_REQUEST,
+                f"Unsupported query parameter(s): {', '.join(sorted(unknown_params))}",
+            )
         # ADDED: Validate that name requires customer_id
         if name and not customer_id:
             app.logger.warning("name parameter requires customer_id")
