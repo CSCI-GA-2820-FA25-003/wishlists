@@ -32,7 +32,7 @@ from functools import wraps
 from decimal import Decimal
 from flask import jsonify, request, url_for, abort
 from flask import current_app as app  # Import Flask application
-from flask_restx import Api, Resource, fields, reqparse, inputs
+from flask_restx import Api, Resource, fields, reqparse
 from service.models import Wishlist, Item
 from service.common import status  # HTTP Status Codes
 
