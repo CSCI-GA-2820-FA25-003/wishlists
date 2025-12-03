@@ -60,9 +60,22 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         db.session.query(Wishlist).delete()  # clean up the last tests
         db.session.commit()
 
+        self.api_key = app.config.get("API_KEY")
+
     def tearDown(self):
         """Runs once after each test case"""
         db.session.remove()
+
+    def _get_auth_headers(self, content_type="application/json", customer_id=None):
+        """Helper to get headers with API key and optional customer ID"""
+        headers = {
+            "X-Api-Key": self.api_key,
+        }
+        if content_type:
+            headers["Content-Type"] = content_type
+        if customer_id:
+            headers["X-Customer-Id"] = customer_id
+        return headers
 
     ######################################################################
     #  P L A C E   T E S T   C A S E S   H E R E
@@ -171,7 +184,10 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         """It should Create a new Wishlist"""
         wishlist = WishlistFactory()
         resp = self.client.post(
-            BASE_URL, json=wishlist.serialize(), content_type="application/json"
+            BASE_URL,
+            json=wishlist.serialize(),
+            content_type="application/json",
+            headers=self._get_auth_headers(),
         )
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
 
@@ -218,6 +234,7 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         resp = self.client.post(
             BASE_URL,
             data=str(wishlist.serialize()),
+            headers={"X-Api-Key": self.api_key},
         )
 
         self.assertEqual(resp.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
@@ -227,9 +244,10 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
     def test_create_wishlist_bad_payload(self):
         """It should fail with 400 BAD_REQUEST when request body is missing required fields"""
         resp = self.client.post(
-            "/wishlists",
+            BASE_URL,
             json={"description": "only desc"},
             content_type="application/json",
+            headers=self._get_auth_headers(),
         )
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         data = resp.get_json()
@@ -238,14 +256,18 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
 
     def test_create_wishlist_method_not_allowed(self):
         """It should return 405 METHOD_NOT_ALLOWED when using an unsupported HTTP method"""
-        resp = self.client.put("/wishlists", json={})
+        resp = self.client.put(BASE_URL, json={}, headers=self._get_auth_headers())
         self.assertEqual(resp.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
         data = resp.get_json()
         self.assertEqual(data["status"], status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def test_create_wishlist_wrong_content_type(self):
         """It should fail with 415 UNSUPPORTED_MEDIA_TYPE when Content-Type is not application/json"""
-        resp = self.client.post("/wishlists", data="{}", content_type="text/html")
+        resp = self.client.post(
+            BASE_URL,
+            data="{}",
+            headers=self._get_auth_headers(content_type="text/html"),
+        )
         self.assertEqual(resp.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
         data = resp.get_json()
         self.assertEqual(data["status"], status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
@@ -255,7 +277,9 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         # Create a wishlist first
         wishlist = WishlistFactory()
         resp = self.client.post(
-            BASE_URL, json=wishlist.serialize(), content_type="application/json"
+            BASE_URL,
+            json=wishlist.serialize(),
+            content_type="application/json, headers=self._get_auth_headers()",
         )
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
         wishlist_id = resp.get_json()["id"]
@@ -264,7 +288,9 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         self.assertIsNotNone(Wishlist.find(wishlist_id))
 
         # Delete it
-        resp = self.client.delete(f"{BASE_URL}/{wishlist_id}")
+        resp = self.client.delete(
+            f"{BASE_URL}/{wishlist_id}", headers={"X-Api-Key": self.api_key}
+        )
         self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
         # No response body for 204
         self.assertEqual(resp.data, b"")
@@ -309,7 +335,7 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         resp = self.client.put(
             f"{BASE_URL}/{wishlist_id}",
             json={"name": "Holiday Gifts"},
-            headers={"X-Customer-Id": owner_id},
+            headers=self._get_auth_headers(customer_id=owner_id),
         )
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
@@ -323,7 +349,7 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         resp = self.client.put(
             f"{BASE_URL}/0",
             json={"name": "Holiday Gifts"},
-            headers={"X-Customer-Id": "User0001"},
+            headers=self._get_auth_headers(customer_id="User0001"),
         )
         self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
         body = resp.get_json()
@@ -337,7 +363,7 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         resp = self.client.put(
             f"{BASE_URL}/{wishlist_id}",
             json={"name": "Nope"},
-            headers={"X-Customer-Id": "IntruderB"},  # not the owner
+            headers=self._get_auth_headers(customer_id="IntruderB"),  # not the owner
         )
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -786,7 +812,9 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
 
         # Create all wishlists
         for wl in [wishlist1, wishlist2, wishlist3]:
-            resp = self.client.post(BASE_URL, json=wl.serialize())
+            resp = self.client.post(
+                BASE_URL, json=wl.serialize(), headers=self._get_auth_headers()
+            )
             self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
 
         # When I send a GET request to /wishlists?customer_id=CUST001&name=gift
