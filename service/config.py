@@ -17,4 +17,7 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # Secret for session management
 SECRET_KEY = os.getenv("SECRET_KEY", "sup3r-s3cr3t")
+
+API_KEY = os.getenv("API_KEY")
+RESTX_ERROR_404_HELP = False
 LOGGING_LEVEL = logging.INFO
