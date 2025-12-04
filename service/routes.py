@@ -368,7 +368,7 @@ class WishlistCollection(Resource):
 ######################################################################
 # LIST ITEM
 ######################################################################
-@app.route("/api//wishlists/<int:wishlist_id>/items", methods=["GET"])
+@app.route("/api/wishlists/<int:wishlist_id>/items", methods=["GET"])
 def list_wishlist_item(wishlist_id: int):
     """List Items in a Wishlist with optional filtering by product_id."""
     app.logger.info(
