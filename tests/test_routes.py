@@ -344,7 +344,7 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         resp = self.client.put(
             f"{BASE_URL}/{wishlist_id}",
             json={"name": "Nope"},
-            headers=self._get_auth_headers(customer_id="IntruderB"),  # not the owner
+            headers=self._get_auth_headers(customer_id="IntruderB"),
         )
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
 

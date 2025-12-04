@@ -216,6 +216,16 @@ class WishlistResource(Resource):
     # UPDATE AN EXISTING Wishlist
     # ------------------------------------------------------------------
     @api.doc("update_wishlists", security="apikey")
+    @api.doc(
+        params={
+            "X-Customer-Id": {
+                "in": "header",
+                "description": "Customer ID (must match wishlist owner)",
+                "required": True,
+                "type": "string",
+            }
+        }
+    )
     @api.response(404, "Wishlist not found")
     @api.response(400, "The posted Wishlist data was not valid")
     @api.expect(wishlist_model)
