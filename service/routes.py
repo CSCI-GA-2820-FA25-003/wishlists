@@ -381,10 +381,10 @@ class WishlistCollection(Resource):
         elif customer_id:
             app.logger.info("Filtering by customer_id: %s", customer_id)
             wishlists = Wishlist.find_by_customer(customer_id)
-        elif name:
-            app.logger.info("Filtering by name: %s", name)
-            all_lists = Wishlist.all()
-            wishlists = [wl for wl in all_lists if name.lower() in wl.name.lower()]
+        # elif name:
+        #     app.logger.info("Filtering by name: %s", name)
+        #     all_lists = Wishlist.all()
+        #     wishlists = [wl for wl in all_lists if name.lower() in wl.name.lower()]
         else:
             app.logger.info("Return all wishlists")
             wishlists = Wishlist.all()

@@ -1171,3 +1171,179 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         self.assertIsInstance(properties["product_id"]["example"], int)
         self.assertIsInstance(properties["product_name"]["example"], str)
         self.assertIsInstance(properties["prices"]["example"], (int, float))
+
+    def test_add_item_with_empty_payload(self):
+        """It should return 400 when payload is empty"""
+        wishlist = self._create_wishlists(1)[0]
+        headers = {
+            "Content-Type": "application/json",
+            "X-User-Id": wishlist.customer_id,
+        }
+
+        # Test with empty JSON object
+        resp = self.client.post(
+            f"{BASE_URL}/{wishlist.id}/items",
+            json={},  # Empty but valid JSON
+            headers=headers,
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_add_item_with_negative_product_id(self):
+        """It should return 400 when product_id is negative or zero"""
+        wishlist = self._create_wishlists(1)[0]
+        headers = {
+            "Content-Type": "application/json",
+            "X-User-Id": wishlist.customer_id,
+        }
+
+        # Test with negative product_id
+        payload = {
+            "product_id": -5,
+            "product_name": "Invalid Item",
+            "prices": 10.00,
+        }
+        resp = self.client.post(
+            f"{BASE_URL}/{wishlist.id}/items", json=payload, headers=headers
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn(b"must be positive", resp.data)
+
+        # Test with zero product_id
+        payload["product_id"] = 0
+        resp = self.client.post(
+            f"{BASE_URL}/{wishlist.id}/items", json=payload, headers=headers
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_query_wishlists_by_name_only_without_customer_id(self):
+        """It should return 400 when name is provided without customer_id"""
+        # This test might already exist, but ensuring it's comprehensive
+        resp = self.client.get(f"{BASE_URL}?name=test")
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        data = resp.get_json()
+        self.assertIn("customer_id is required", data["message"].lower())
+
+    def test_delete_wishlist_that_does_not_exist(self):
+        """It should return 204 even when deleting non-existent wishlist (idempotent)"""
+        headers = {"X-Api-Key": self.api_key}
+
+        # Try to delete a wishlist that doesn't exist
+        resp = self.client.delete(f"{BASE_URL}/99999", headers=headers)
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_add_item_with_non_integer_product_id(self):
+        """It should return 400 when product_id is not an integer type"""
+        wishlist = self._create_wishlists(1)[0]
+        headers = {
+            "Content-Type": "application/json",
+            "X-User-Id": wishlist.customer_id,
+        }
+
+        # Test with string product_id
+        payload = {
+            "product_id": "not_an_integer",
+            "product_name": "Invalid Item",
+            "prices": 10.00,
+        }
+        resp = self.client.post(
+            f"{BASE_URL}/{wishlist.id}/items", json=payload, headers=headers
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn(b"product_id must be an integer", resp.data)
+
+    def test_add_item_with_empty_string_product_name(self):
+        """It should return 400 when product_name is empty string or whitespace"""
+        wishlist = self._create_wishlists(1)[0]
+        headers = {
+            "Content-Type": "application/json",
+            "X-User-Id": wishlist.customer_id,
+        }
+
+        # Test with empty string
+        payload = {
+            "product_id": 123,
+            "product_name": "",
+            "prices": 10.00,
+        }
+        resp = self.client.post(
+            f"{BASE_URL}/{wishlist.id}/items", json=payload, headers=headers
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn(b"non-empty string", resp.data)
+
+        # Test with whitespace only
+        payload["product_name"] = "   "
+        resp = self.client.post(
+            f"{BASE_URL}/{wishlist.id}/items", json=payload, headers=headers
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_add_item_with_invalid_price_format(self):
+        """It should return 400 when price is not a valid number"""
+        wishlist = self._create_wishlists(1)[0]
+        headers = {
+            "Content-Type": "application/json",
+            "X-User-Id": wishlist.customer_id,
+        }
+
+        # Test with invalid price (not a number)
+        payload = {
+            "product_id": 123,
+            "product_name": "Test Item",
+            "prices": "not_a_number",
+        }
+        resp = self.client.post(
+            f"{BASE_URL}/{wishlist.id}/items", json=payload, headers=headers
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn(b"price must be a number", resp.data)
+
+    def test_list_items_for_nonexistent_wishlist(self):
+        """It should return 404 when listing items for non-existent wishlist"""
+        resp = self.client.get(f"{BASE_URL}/99999/items")
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+        data = resp.get_json()
+        self.assertIn("not found", data["message"].lower())
+
+    def test_get_item_from_nonexistent_wishlist(self):
+        """It should return 404 when getting item from non-existent wishlist"""
+        resp = self.client.get(f"{BASE_URL}/99999/items/1")
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+        data = resp.get_json()
+        self.assertIn("wishlist", data["message"].lower())
+        self.assertIn("not found", data["message"].lower())
+
+    def test_get_nonexistent_item_from_existing_wishlist(self):
+        """It should return 404 when item doesn't exist"""
+        wishlist = self._create_wishlists(1)[0]
+
+        # Try to get an item that doesn't exist
+        resp = self.client.get(f"{BASE_URL}/{wishlist.id}/items/99999")
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+        data = resp.get_json()
+        self.assertIn("item", data["message"].lower())
+        self.assertIn("not found", data["message"].lower())
+
+    def test_update_item_in_nonexistent_wishlist(self):
+        """It should return 404 when updating item in non-existent wishlist"""
+        payload = {"product_id": 123, "product_name": "Updated Item", "prices": 29.99}
+
+        resp = self.client.put(f"{BASE_URL}/99999/items/1", json=payload)
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_get_item_from_wrong_wishlist(self):
+        """It should return 404 when item belongs to a different wishlist"""
+        # Create two wishlists
+        wishlists = self._create_wishlists(2)
+        wishlist1 = wishlists[0]
+        wishlist2 = wishlists[1]
+
+        # Add an item to wishlist1
+        item = ItemFactory(wishlist_id=wishlist1.id, customer_id=wishlist1.customer_id)
+        item.create()
+
+        # Try to GET the item using wishlist2's ID (wrong wishlist)
+        resp = self.client.get(f"{BASE_URL}/{wishlist2.id}/items/{item.id}")
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+        data = resp.get_json()
+        self.assertIn("not found", data["message"].lower())
