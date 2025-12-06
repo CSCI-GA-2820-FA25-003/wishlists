@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 ######################################################################
 # Copyright 2016, 2024 John J. Rofrano. All Rights Reserved.
 #
@@ -501,7 +502,7 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         payload = {
             "product_id": 123456,
             "product_name": "widget-pro",
-            "price": 19.99,
+            "prices": 19.99,
             "description": "fancy widget",
         }
 
@@ -520,7 +521,7 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         self.assertEqual(data["product_name"], payload["product_name"])
         self.assertIn("wish_date", data)  # date snapshot
         self.assertIn("prices", data)
-        self.assertAlmostEqual(data["prices"], payload["price"], places=2)
+        self.assertAlmostEqual(data["prices"], payload["prices"], places=2)
 
         # Follow Location to ensure persistence
         item_url = resp.headers["Location"]
@@ -537,7 +538,7 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
             "Content-Type": "application/json",
             "X-User-Id": wishlist.customer_id,
         }
-        payload = {"product_id": 98765, "product_name": "gadget", "price": 9.99}
+        payload = {"product_id": 98765, "product_name": "gadget", "prices": 9.99}
 
         # First add succeeds
         resp1 = self.client.post(
@@ -754,7 +755,7 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
             payload = {
                 "product_id": 1000 + i,  # ensure uniqueness per uq constraint
                 "product_name": f"p-{i}",
-                "price": 9.99 + i,
+                "prices": 9.99 + i,
             }
             resp = self.client.post(
                 f"{BASE_URL}/{wid}/items",
@@ -988,3 +989,361 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
             headers={"Content-Type": "application/json"},
         )
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    ######################################################################
+    #  S W A G G E R   D O C U M E N T A T I O N   T E S T S
+    ######################################################################
+
+    def test_swagger_ui_accessible(self):
+        """It should access the Swagger UI"""
+        # Test that Swagger documentation is accessible
+        # The UI might be at different URLs depending on Flask-RESTX configuration,
+        # so we verify the swagger.json spec is accessible
+        resp = self.client.get("/api/swagger.json")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+        swagger_spec = resp.get_json()
+        self.assertIn("swagger", swagger_spec)
+        self.assertIn("info", swagger_spec)
+        self.assertIn("paths", swagger_spec)
+
+    def test_swagger_spec_contains_item_model(self):
+        """It should include WishlistItem model in Swagger spec"""
+        resp = self.client.get("/api/swagger.json")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+        swagger_spec = resp.get_json()
+
+        # Check that the models are defined
+        self.assertIn("definitions", swagger_spec)
+        definitions = swagger_spec["definitions"]
+
+        # Check for WishlistItem model
+        self.assertIn("WishlistItem", definitions)
+        item_model = definitions["WishlistItem"]
+
+        # Verify required fields
+        self.assertIn("required", item_model)
+        required_fields = item_model["required"]
+        self.assertIn("product_id", required_fields)
+        self.assertIn("product_name", required_fields)
+        self.assertIn("prices", required_fields)
+
+        # Verify properties
+        self.assertIn("properties", item_model)
+        properties = item_model["properties"]
+        self.assertIn("product_id", properties)
+        self.assertIn("product_name", properties)
+        self.assertIn("prices", properties)
+
+        # Check field types
+        self.assertEqual(properties["product_id"]["type"], "integer")
+        self.assertEqual(properties["product_name"]["type"], "string")
+        self.assertEqual(properties["prices"]["type"], "number")
+
+        # Check descriptions exist
+        self.assertIn("description", properties["product_id"])
+        self.assertIn("description", properties["product_name"])
+        self.assertIn("description", properties["prices"])
+
+    def test_swagger_spec_contains_item_model_with_readonly_fields(self):
+        """It should include WishlistItemModel with read-only fields"""
+        resp = self.client.get("/api/swagger.json")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+        swagger_spec = resp.get_json()
+        definitions = swagger_spec["definitions"]
+
+        # Check for WishlistItemModel (the full model with read-only fields)
+        self.assertIn("WishlistItemModel", definitions)
+        item_model = definitions["WishlistItemModel"]
+
+        # Flask-RESTX uses 'allOf' for inherited models
+        # The model combines the parent with additional properties
+        if "allOf" in item_model:
+            # Get properties from the parent reference and additional properties
+            all_properties = {}
+            for schema in item_model["allOf"]:
+                if "properties" in schema:
+                    all_properties.update(schema["properties"])
+                elif "$ref" in schema:
+                    # Get properties from the referenced model
+                    ref_name = schema["$ref"].split("/")[-1]
+                    if (
+                        ref_name in definitions
+                        and "properties" in definitions[ref_name]
+                    ):
+                        all_properties.update(definitions[ref_name]["properties"])
+            properties = all_properties
+        else:
+            properties = item_model.get("properties", {})
+
+        # Verify that the additional read-only fields exist
+        # (These are the fields added via api.inherit that aren't in the base WishlistItem model)
+        self.assertIn("id", properties, "id field should exist in WishlistItemModel")
+        self.assertIn("wishlist_id", properties, "wishlist_id field should exist")
+        self.assertIn("customer_id", properties, "customer_id field should exist")
+        self.assertIn("wish_date", properties, "wish_date field should exist")
+
+        # Verify the id field is an integer
+        self.assertEqual(properties["id"].get("type"), "integer")
+
+    def test_swagger_post_items_endpoint_uses_model(self):
+        """It should document POST /wishlists/{id}/items with WishlistItem model"""
+        resp = self.client.get("/api/swagger.json")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+        swagger_spec = resp.get_json()
+
+        # Navigate to the POST endpoint
+        paths = swagger_spec.get("paths", {})
+        items_path = "/wishlists/{wishlist_id}/items"
+
+        self.assertIn(items_path, paths)
+        self.assertIn("post", paths[items_path])
+
+        post_spec = paths[items_path]["post"]
+
+        # Check that it has parameters (request body)
+        self.assertIn("parameters", post_spec)
+
+        # Find the body parameter
+        body_param = None
+        for param in post_spec["parameters"]:
+            if param.get("in") == "body":
+                body_param = param
+                break
+
+        self.assertIsNotNone(body_param, "POST endpoint should have a body parameter")
+
+        # Verify it references the WishlistItem model
+        self.assertIn("schema", body_param)
+        schema = body_param["schema"]
+        self.assertIn("$ref", schema)
+        self.assertIn("WishlistItem", schema["$ref"])
+
+    def test_swagger_get_items_endpoint_returns_model(self):
+        """It should document GET /wishlists/{id}/items returns array of WishlistItemModel"""
+        resp = self.client.get("/api/swagger.json")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+        swagger_spec = resp.get_json()
+
+        paths = swagger_spec.get("paths", {})
+        items_path = "/wishlists/{wishlist_id}/items"
+
+        self.assertIn(items_path, paths)
+        self.assertIn("get", paths[items_path])
+
+        get_spec = paths[items_path]["get"]
+
+        # Check response schema
+        self.assertIn("responses", get_spec)
+        self.assertIn("200", get_spec["responses"])
+
+        response_200 = get_spec["responses"]["200"]
+        self.assertIn("schema", response_200)
+
+        schema = response_200["schema"]
+        # Should be an array of WishlistItemModel
+        self.assertEqual(schema.get("type"), "array")
+        self.assertIn("items", schema)
+        self.assertIn("$ref", schema["items"])
+        self.assertIn("WishlistItemModel", schema["items"]["$ref"])
+
+    def test_swagger_item_model_has_examples(self):
+        """It should include example values in the WishlistItem model"""
+        resp = self.client.get("/api/swagger.json")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+        swagger_spec = resp.get_json()
+        definitions = swagger_spec["definitions"]
+
+        item_model = definitions["WishlistItem"]
+        properties = item_model["properties"]
+
+        # Check that examples exist
+        self.assertIn("example", properties["product_id"])
+        self.assertIn("example", properties["product_name"])
+        self.assertIn("example", properties["prices"])
+
+        # Verify example values are reasonable
+        self.assertIsInstance(properties["product_id"]["example"], int)
+        self.assertIsInstance(properties["product_name"]["example"], str)
+        self.assertIsInstance(properties["prices"]["example"], (int, float))
+
+    def test_add_item_with_empty_payload(self):
+        """It should return 400 when payload is empty"""
+        wishlist = self._create_wishlists(1)[0]
+        headers = {
+            "Content-Type": "application/json",
+            "X-User-Id": wishlist.customer_id,
+        }
+
+        # Test with empty JSON object
+        resp = self.client.post(
+            f"{BASE_URL}/{wishlist.id}/items",
+            json={},  # Empty but valid JSON
+            headers=headers,
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_add_item_with_negative_product_id(self):
+        """It should return 400 when product_id is negative or zero"""
+        wishlist = self._create_wishlists(1)[0]
+        headers = {
+            "Content-Type": "application/json",
+            "X-User-Id": wishlist.customer_id,
+        }
+
+        # Test with negative product_id
+        payload = {
+            "product_id": -5,
+            "product_name": "Invalid Item",
+            "prices": 10.00,
+        }
+        resp = self.client.post(
+            f"{BASE_URL}/{wishlist.id}/items", json=payload, headers=headers
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn(b"must be positive", resp.data)
+
+        # Test with zero product_id
+        payload["product_id"] = 0
+        resp = self.client.post(
+            f"{BASE_URL}/{wishlist.id}/items", json=payload, headers=headers
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_query_wishlists_by_name_only_without_customer_id(self):
+        """It should return 400 when name is provided without customer_id"""
+        # This test might already exist, but ensuring it's comprehensive
+        resp = self.client.get(f"{BASE_URL}?name=test")
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        data = resp.get_json()
+        self.assertIn("customer_id is required", data["message"].lower())
+
+    def test_delete_wishlist_that_does_not_exist(self):
+        """It should return 204 even when deleting non-existent wishlist (idempotent)"""
+        headers = {"X-Api-Key": self.api_key}
+
+        # Try to delete a wishlist that doesn't exist
+        resp = self.client.delete(f"{BASE_URL}/99999", headers=headers)
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_add_item_with_non_integer_product_id(self):
+        """It should return 400 when product_id is not an integer type"""
+        wishlist = self._create_wishlists(1)[0]
+        headers = {
+            "Content-Type": "application/json",
+            "X-User-Id": wishlist.customer_id,
+        }
+
+        # Test with string product_id
+        payload = {
+            "product_id": "not_an_integer",
+            "product_name": "Invalid Item",
+            "prices": 10.00,
+        }
+        resp = self.client.post(
+            f"{BASE_URL}/{wishlist.id}/items", json=payload, headers=headers
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn(b"product_id must be an integer", resp.data)
+
+    def test_add_item_with_empty_string_product_name(self):
+        """It should return 400 when product_name is empty string or whitespace"""
+        wishlist = self._create_wishlists(1)[0]
+        headers = {
+            "Content-Type": "application/json",
+            "X-User-Id": wishlist.customer_id,
+        }
+
+        # Test with empty string
+        payload = {
+            "product_id": 123,
+            "product_name": "",
+            "prices": 10.00,
+        }
+        resp = self.client.post(
+            f"{BASE_URL}/{wishlist.id}/items", json=payload, headers=headers
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn(b"non-empty string", resp.data)
+
+        # Test with whitespace only
+        payload["product_name"] = "   "
+        resp = self.client.post(
+            f"{BASE_URL}/{wishlist.id}/items", json=payload, headers=headers
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_add_item_with_invalid_price_format(self):
+        """It should return 400 when price is not a valid number"""
+        wishlist = self._create_wishlists(1)[0]
+        headers = {
+            "Content-Type": "application/json",
+            "X-User-Id": wishlist.customer_id,
+        }
+
+        # Test with invalid price (not a number)
+        payload = {
+            "product_id": 123,
+            "product_name": "Test Item",
+            "prices": "not_a_number",
+        }
+        resp = self.client.post(
+            f"{BASE_URL}/{wishlist.id}/items", json=payload, headers=headers
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn(b"price must be a number", resp.data)
+
+    def test_list_items_for_nonexistent_wishlist(self):
+        """It should return 404 when listing items for non-existent wishlist"""
+        resp = self.client.get(f"{BASE_URL}/99999/items")
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+        data = resp.get_json()
+        self.assertIn("not found", data["message"].lower())
+
+    def test_get_item_from_nonexistent_wishlist(self):
+        """It should return 404 when getting item from non-existent wishlist"""
+        resp = self.client.get(f"{BASE_URL}/99999/items/1")
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+        data = resp.get_json()
+        self.assertIn("wishlist", data["message"].lower())
+        self.assertIn("not found", data["message"].lower())
+
+    def test_get_nonexistent_item_from_existing_wishlist(self):
+        """It should return 404 when item doesn't exist"""
+        wishlist = self._create_wishlists(1)[0]
+
+        # Try to get an item that doesn't exist
+        resp = self.client.get(f"{BASE_URL}/{wishlist.id}/items/99999")
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+        data = resp.get_json()
+        self.assertIn("item", data["message"].lower())
+        self.assertIn("not found", data["message"].lower())
+
+    def test_update_item_in_nonexistent_wishlist(self):
+        """It should return 404 when updating item in non-existent wishlist"""
+        payload = {"product_id": 123, "product_name": "Updated Item", "prices": 29.99}
+
+        resp = self.client.put(f"{BASE_URL}/99999/items/1", json=payload)
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_get_item_from_wrong_wishlist(self):
+        """It should return 404 when item belongs to a different wishlist"""
+        # Create two wishlists
+        wishlists = self._create_wishlists(2)
+        wishlist1 = wishlists[0]
+        wishlist2 = wishlists[1]
+
+        # Add an item to wishlist1
+        item = ItemFactory(wishlist_id=wishlist1.id, customer_id=wishlist1.customer_id)
+        item.create()
+
+        # Try to GET the item using wishlist2's ID (wrong wishlist)
+        resp = self.client.get(f"{BASE_URL}/{wishlist2.id}/items/{item.id}")
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+        data = resp.get_json()
+        self.assertIn("not found", data["message"].lower())
