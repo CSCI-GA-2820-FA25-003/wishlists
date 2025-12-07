@@ -181,6 +181,12 @@ item_model = api.inherit(
     },
 )
 
+# Add items field to wishlist_model after item_model is defined
+wishlist_model["items"] = fields.List(
+    fields.Nested(item_model),
+    description="List of items in the wishlist",
+)
+
 
 ######################################################################
 # Authorization Decorator
