@@ -240,20 +240,20 @@ def api_index():
             paths={
                 # "wishlists": "/wishlists",
                 # ----------- Wishlist endpoints -----------
-                "list_all_wishlists": f"{base}/wishlists",
-                "create_wishlist": f"{base}/wishlists",
-                "get_wishlist": f"{base}/wishlists/{{wishlist_id}}",
-                "update_wishlist": f"{base}/wishlists/{{wishlist_id}}",
-                "delete_wishlist": f"{base}/wishlists/{{wishlist_id}}",
+                "list_all_wishlists": f"{base}/api/wishlists",
+                "create_wishlist": f"{base}/api/wishlists",
+                "get_wishlist": f"{base}/api/wishlists/{{wishlist_id}}",
+                "update_wishlist": f"{base}/api/wishlists/{{wishlist_id}}",
+                "delete_wishlist": f"{base}/api/wishlists/{{wishlist_id}}",
                 # ----------- Wishlist Item endpoints -----------
-                "list_wishlist_items": f"{base}/wishlists/{{wishlist_id}}/items",
-                "create_wishlist_item": f"{base}/wishlists/{{wishlist_id}}/items",
-                "get_wishlist_item": f"{base}/wishlists/{{wishlist_id}}/items/{{item_id}}",
-                "update_wishlist_item": f"{base}/wishlists/{{wishlist_id}}/items/{{item_id}}",
-                "delete_wishlist_item": f"{base}/wishlists/{{wishlist_id}}/items/{{item_id}}",
+                "list_wishlist_items": f"{base}/api/wishlists/{{wishlist_id}}/items",
+                "create_wishlist_item": f"{base}/api/wishlists/{{wishlist_id}}/items",
+                "get_wishlist_item": f"{base}/api/wishlists/{{wishlist_id}}/items/{{item_id}}",
+                "update_wishlist_item": f"{base}/api/wishlists/{{wishlist_id}}/items/{{item_id}}",
+                "delete_wishlist_item": f"{base}/api/wishlists/{{wishlist_id}}/items/{{item_id}}",
                 # ----------- Action endpoints -----------
-                "clear_wishlist": f"{base}/wishlists/{{wishlist_id}}/clear",
-                "share_wishlist": f"{base}/wishlists/{{wishlist_id}}/share",
+                "clear_wishlist": f"{base}/api/wishlists/{{wishlist_id}}/clear",
+                "share_wishlist": f"{base}/api/wishlists/{{wishlist_id}}/share",
             },
         ),
         status.HTTP_200_OK,
@@ -456,7 +456,10 @@ class WishlistCollection(Resource):
         # Create the wishlist
         wishlist = Wishlist()
         app.logger.debug("Payload = %s", api.payload)
-        wishlist.deserialize(api.payload)
+        data = api.payload
+        wishlist.customer_id = data["customer_id"]
+        wishlist.name = data["name"]
+        wishlist.description = data.get("description")
         wishlist.create()
         app.logger.info("Wishlist with id [%s] created.", wishlist.id)
         location_url = api.url_for(
@@ -754,30 +757,27 @@ class WishlistItemResource(Resource):
 #################################################################
 # CLEAR A WISHLIST item
 #################################################################
-@app.route("/api/wishlists/<int:wishlist_id>/clear", methods=["PUT"])
-def clear_wishlist(wishlist_id: int):
-    """
-    Clear all items in the given Wishlist (idempotent).
-    Responses:
-        204 No Content: wishlist cleared successfully (even if it was already empty)
-        404 Not Found : wishlist does not exist
-    """
-    app.logger.info("Request to clear all items in Wishlist [%s]", wishlist_id)
+@api.route("/wishlists/<int:wishlist_id>/clear")
+@api.param("wishlist_id", "The Wishlist identifier")
+class ClearWishlistResource(Resource):
+    """Clear all items from a wishlist"""
 
-    wishlist = Wishlist.find(wishlist_id)
-    if not wishlist:
-        abort(
-            status.HTTP_404_NOT_FOUND,
-            f"Wishlist with id '{wishlist_id}' was not found.",
-        )
+    @api.doc("clear_wishlist")
+    @api.response(204, "Wishlist cleared")
+    @api.response(404, "Wishlist not found")
+    def put(self, wishlist_id):
+        app.logger.info("Request to clear all items in Wishlist [%s]", wishlist_id)
 
-    deleted = wishlist.clear_items()  # domain method commits the transaction
-    app.logger.info(
-        "Cleared %s item(s) from Wishlist [%s] (idempotent 204).",
-        deleted,
-        wishlist_id,
-    )
-    return "", status.HTTP_204_NO_CONTENT
+        wishlist = Wishlist.find(wishlist_id)
+        if not wishlist:
+            abort(
+                status.HTTP_404_NOT_FOUND,
+                f"Wishlist with id '{wishlist_id}' was not found.",
+            )
+
+        wishlist.clear_items()
+
+        return "", status.HTTP_204_NO_CONTENT
 
 
 #################################################################
