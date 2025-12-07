@@ -67,19 +67,57 @@ def index():
 
 # Define the model so that the docs reflect what can be sent
 create_model = api.model(
-    "Wishlist",
+    "WishlistCreate",
     {
-        "name": fields.String(),
-        "customer_id": fields.String(),
-        "description": fields.String(),
+        "name": fields.String(
+            required=True,
+            description="The name of the wishlist",
+            example="My Birthday Wishlist",
+        ),
+        "customer_id": fields.String(
+            required=True,
+            description="The unique identifier of the customer who owns this wishlist",
+            example="CUST001",
+        ),
+        "description": fields.String(
+            required=False,
+            description="An optional description of the wishlist",
+            example="Things I want for my birthday",
+        ),
     },
 )
 
-wishlist_model = api.inherit(
-    "WishlistModel",
-    create_model,
+wishlist_model = api.model(
+    "Wishlist",
     {
-        "id": fields.Integer(readOnly=True),
+        "id": fields.Integer(
+            readOnly=True,
+            description="The unique identifier of the wishlist",
+            example=1,
+        ),
+        "name": fields.String(
+            required=True,
+            description="The name of the wishlist",
+            example="My Birthday Wishlist",
+        ),
+        "customer_id": fields.String(
+            required=True,
+            description="The unique identifier of the customer who owns this wishlist",
+            example="CUST001",
+        ),
+        "description": fields.String(
+            required=False,
+            description="An optional description of the wishlist",
+            example="Things I want for my birthday",
+        ),
+        "created_at": fields.DateTime(
+            readOnly=True,
+            description="Timestamp when the wishlist was created",
+        ),
+        "updated_at": fields.DateTime(
+            readOnly=True,
+            description="Timestamp when the wishlist was last updated",
+        ),
     },
 )
 wishlist_args = reqparse.RequestParser()
@@ -141,6 +179,12 @@ item_model = api.inherit(
             example="2024-12-05T10:30:00Z",
         ),
     },
+)
+
+# Add items field to wishlist_model after item_model is defined
+wishlist_model["items"] = fields.List(
+    fields.Nested(item_model),
+    description="List of items in the wishlist",
 )
 
 
