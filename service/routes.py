@@ -766,6 +766,7 @@ class ClearWishlistResource(Resource):
     @api.response(204, "Wishlist cleared")
     @api.response(404, "Wishlist not found")
     def put(self, wishlist_id):
+        """Clear all items in the specified wishlist."""
         app.logger.info("Request to clear all items in Wishlist [%s]", wishlist_id)
 
         wishlist = Wishlist.find(wishlist_id)
