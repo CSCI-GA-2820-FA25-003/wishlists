@@ -340,7 +340,7 @@ class WishlistResource(Resource):
             abort(status.HTTP_403_FORBIDDEN, "You do not own this wishlist")
         app.logger.debug("Payload = %s", api.payload)
         # Partial Updates
-        data = api.payload
+        data = api.payload or {}
         if "name" in data:
             wishlist.name = data["name"]
         if "description" in data:
@@ -444,7 +444,7 @@ class WishlistCollection(Resource):
     @api.doc("create_wishlists", security="apikey")
     @api.response(400, "The posted data was not valid")
     @api.expect(create_model)
-    @api.marshal_with(wishlist_model, code=201)
+    # @api.marshal_with(wishlist_model, code=201)
     @token_required
     def post(self):
         """
@@ -456,9 +456,17 @@ class WishlistCollection(Resource):
         # Create the wishlist
         wishlist = Wishlist()
         app.logger.debug("Payload = %s", api.payload)
-        data = api.payload
-        wishlist.customer_id = data["customer_id"]
-        wishlist.name = data["name"]
+        data = api.payload or {}
+
+        try:
+            wishlist.customer_id = data["customer_id"]
+            wishlist.name = data["name"]
+        except KeyError as error:
+            return {
+                "status": status.HTTP_400_BAD_REQUEST,
+                "error": f"Bad Request: Invalid Wishlist - missing {error.args[0]}",
+            }, status.HTTP_400_BAD_REQUEST
+
         wishlist.description = data.get("description")
         wishlist.create()
         app.logger.info("Wishlist with id [%s] created.", wishlist.id)
