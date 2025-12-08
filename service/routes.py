@@ -542,6 +542,12 @@ class WishlistItemCollection(Resource):
         results = [item.serialize() for item in items]
         return results, status.HTTP_200_OK
 
+    def _validate_item_product_id(self, product_id):
+        if not isinstance(product_id, int):
+            abort(status.HTTP_400_BAD_REQUEST, "product_id must be an integer")
+        if product_id <= 0:
+            abort(status.HTTP_400_BAD_REQUEST, "Invalid product_id: must be positive")
+
     # ------------------------------------------------------------------
     # ADD AN ITEM
     # ------------------------------------------------------------------
@@ -577,10 +583,7 @@ class WishlistItemCollection(Resource):
 
         # product_id validation
         product_id = payload.get("product_id")
-        if not isinstance(product_id, int):
-            abort(status.HTTP_400_BAD_REQUEST, "product_id must be an integer")
-        if product_id <= 0:
-            abort(status.HTTP_400_BAD_REQUEST, "Invalid product_id: must be positive")
+        self._validate_item_product_id(product_id)
 
         # product_name validation
         product_name = payload.get("product_name")
@@ -591,6 +594,12 @@ class WishlistItemCollection(Resource):
 
         # price validation
         price = payload.get("prices")
+        if price is None:
+            price = payload.get("price")
+
+        if price is None:
+            abort(status.HTTP_400_BAD_REQUEST, "price is required")
+
         try:
             price_val = Decimal(str(price))
         except Exception:  # pylint: disable=broad-except
