@@ -26,6 +26,7 @@ For information on Waiting until elements are present in the HTML see:
 """
 from pathlib import Path
 import re
+import os
 import logging
 from typing import Any
 from behave import when, then  # pylint: disable=no-name-in-module
