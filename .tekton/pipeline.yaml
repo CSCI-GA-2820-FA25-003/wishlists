@@ -22,6 +22,10 @@ spec:
     - name: BASE_URL
       type: string
       description: The URL to the wishlist service
+    - name: API_KEY
+      type: string
+      description: The API key to access the wishlist service
+      default: "dev-api-key-123"
 
   workspaces:
     - name: pipeline-workspace
@@ -173,6 +177,8 @@ spec:
       params:
         - name: base-url
           value: $(params.BASE_URL)
+        - name: api-key
+          value: $(params.API_KEY)
         - name: wait-seconds
           value: "60"
         - name: driver
