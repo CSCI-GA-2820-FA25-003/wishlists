@@ -7,6 +7,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/x-icon" href="static/images/newapp-icon.png">
     <link rel="stylesheet" href="static/css/cerulean_bootstrap.min.css">
+    <style>
+      .status-table {
+        table-layout: fixed;
+        width: 100%;
+      }
+  
+      .status-table td:first-child {
+        width: 120px;
+        white-space: nowrap;
+      }
+  
+      #flash_message {
+        display: block;
+        word-wrap: break-word;
+      }
+    </style>
   </head>
   <body>
     <div class="container">
@@ -15,9 +31,28 @@
       </div>
 
       <!-- Flash Message -->
-      <div class="table-responsive">
+      <!-- <div class="table-responsive">
         <table class="table">
           <tr><td>Status:</td><td><span id="flash_message"></span></td></tr>
+        </table>
+      </div> -->
+      <div class="table-responsive">
+        <table class="table status-table">
+          <tr>
+            <td>Status:</td>
+            <td><span id="flash_message"></span></td>
+          </tr>
+          <tr>
+            <td>API Key:</td>
+            <td>
+              <input type="password" id="api_key_input"
+                     class="form-control"
+                     placeholder="Enter X-Api-Key from server">
+              <button type="button" class="btn btn-info btn-sm" id="set_api_key-btn" style="margin-top: 8px;">
+                Set API Key
+              </button>
+            </td>
+          </tr>
         </table>
       </div>
 

@@ -11,6 +11,22 @@ $(function () {
     const $itemProductName = $("#item_product_name");
     const $itemPrice = $("#item_price");
 
+    let apiKey = null;
+
+    function withAuthHeaders(extraHeaders) {
+        const headers = extraHeaders ? { ...extraHeaders } : {};
+        if (apiKey) {
+            headers["X-Api-Key"] = apiKey;
+        }
+        return headers;
+    }
+
+    function ajaxWithAuth(options) {
+        options = options || {};
+        options.headers = withAuthHeaders(options.headers);
+        return $.ajax(options);
+    }
+
     function handleFail(res, fallback) {
         const message = res.responseJSON?.message || res.responseText || fallback || "Server error";
         flashMessage(message);
@@ -22,6 +38,15 @@ $(function () {
             $flash.append(message);
         }
     }
+    $("#set_api_key-btn").click(function () {
+        const value = $("#api_key_input").val().trim();
+        apiKey = value || null;
+        if (apiKey) {
+            flashMessage("API key set for this session");
+        } else {
+            flashMessage("API key cleared");
+        }
+    });
 
     // /* ===== Extended Wishlist & Item Features (Optional) START =====
     const $itemId = $("#item_id");
@@ -125,10 +150,10 @@ $(function () {
         flashMessage("");
         
         // console.log("[DEBUG] Sending PUT request...");
-        
-        $.ajax({
+        ajaxWithAuth({
+        // $.ajax({
             type: "PUT",
-            url: `/wishlists/${wishlistId}`,
+            url: `/api/wishlists/${wishlistId}`,
             contentType: "application/json",
             headers: {
                 "X-Customer-Id": $wishlistCustomerId.val(),
@@ -156,10 +181,10 @@ $(function () {
         }
     
         flashMessage("");
-    
-        $.ajax({
+        ajaxWithAuth({
+        // $.ajax({
             type: "GET",
-            url: `/wishlists/${wishlistId}`,
+            url: `/api/wishlists/${wishlistId}`,
             contentType: "application/json",
         })
             .done(function (res) {
@@ -175,9 +200,10 @@ $(function () {
                 // console.log("[DEBUG]   - description field:", $wishlistDescription.val());
                 
                 // Also fetch the items for this wishlist
-                $.ajax({
+                ajaxWithAuth({
+                // $.ajax({
                     type: "GET",
-                    url: `/wishlists/${wishlistId}/items`,
+                    url: `/api/wishlists/${wishlistId}/items`,
                     contentType: "application/json",
                 })
                     .done(function (items) {
@@ -205,10 +231,10 @@ $(function () {
         }
 
         flashMessage("");
-
-        $.ajax({
+        ajaxWithAuth({
+        // $.ajax({
             type: "DELETE",
-            url: `/wishlists/${wishlistId}`,
+            url: `/api/wishlists/${wishlistId}`,
             contentType: "application/json",
         })
             .done(function () {
@@ -239,10 +265,10 @@ $(function () {
         const queryString = params.length > 0 ? `?${params.join("&")}` : "";
 
         flashMessage("");
-
-        $.ajax({
+        ajaxWithAuth({
+        // $.ajax({
             type: "GET",
-            url: `/wishlists${queryString}`,
+            url: `/api/wishlists${queryString}`,
             contentType: "application/json",
         })
             .done(function (res) {
@@ -260,10 +286,10 @@ $(function () {
         }
 
         flashMessage("");
-
-        $.ajax({
+        ajaxWithAuth({
+        // $.ajax({
             type: "PUT",
-            url: `/wishlists/${wishlistId}/clear`,
+            url: `/api/wishlists/${wishlistId}/clear`,
             contentType: "application/json",
         })
             .done(function () {
@@ -280,10 +306,10 @@ $(function () {
         }
 
         flashMessage("");
-
-        $.ajax({
+        ajaxWithAuth({
+        // $.ajax({
             type: "PUT",
-            url: `/wishlists/${wishlistId}/share`,
+            url: `/api/wishlists/${wishlistId}/share`,
             contentType: "application/json",
         })
             .done(function (res) {
@@ -315,10 +341,10 @@ $(function () {
         };
 
         flashMessage("");
-
-        $.ajax({
+        ajaxWithAuth({
+        // $.ajax({
             type: "PUT",
-            url: `/wishlists/${wishlistId}/items/${itemId}`,
+            url: `/api/wishlists/${wishlistId}/items/${itemId}`,
             contentType: "application/json",
             data: JSON.stringify(data),
         })
@@ -338,10 +364,10 @@ $(function () {
         }
 
         flashMessage("");
-
-        $.ajax({
+        ajaxWithAuth({
+        // $.ajax({
             type: "GET",
-            url: `/wishlists/${wishlistId}/items/${itemId}`,
+            url: `/api/wishlists/${wishlistId}/items/${itemId}`,
             contentType: "application/json",
         })
             .done(function (res) {
@@ -363,10 +389,10 @@ $(function () {
         }
 
         flashMessage("");
-
-        $.ajax({
+        ajaxWithAuth({
+        // $.ajax({
             type: "DELETE",
-            url: `/wishlists/${wishlistId}/items/${itemId}`,
+            url: `/api/wishlists/${wishlistId}/items/${itemId}`,
             contentType: "application/json",
         })
             .done(function () {
@@ -401,10 +427,10 @@ $(function () {
         const queryString = params.length > 0 ? `?${params.join("&")}` : "";
 
         flashMessage("");
-
-        $.ajax({
+        ajaxWithAuth({
+        // $.ajax({
             type: "GET",
-            url: `/wishlists/${wishlistId}/items${queryString}`,
+            url: `/api/wishlists/${wishlistId}/items${queryString}`,
             contentType: "application/json",
         })
             .done(function (res) {
@@ -431,10 +457,10 @@ $(function () {
         }
 
         flashMessage("");
-
-        $.ajax({
+        ajaxWithAuth({
+        // $.ajax({
             type: "POST",
-            url: "/wishlists",
+            url: "/api/wishlists",
             contentType: "application/json",
             data: JSON.stringify(payload),
         })
@@ -482,10 +508,10 @@ $(function () {
         }
 
         flashMessage("");
-
-        $.ajax({
+        ajaxWithAuth({
+        // $.ajax({
             type: "POST",
-            url: `/wishlists/${wishlistId}/items`,
+            url: `/api/wishlists/${wishlistId}/items`,
             contentType: "application/json",
             data: JSON.stringify(payload),
         })
