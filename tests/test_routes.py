@@ -21,10 +21,16 @@ Wishlist Service API Service Test Suite
 import os
 import logging
 from unittest import TestCase
+from pathlib import Path
 from wsgi import app
 from tests.factories import WishlistFactory, ItemFactory
 from service.common import status
 from service.models import db, Wishlist, Item
+
+from service import config
+from service import create_app
+from service.common.error_handlers import data_validation_error
+from service.models import DataValidationError
 
 # from service.common.error_handlers import forbidden, internal_server_error
 
@@ -1348,3 +1354,35 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
         data = resp.get_json()
         self.assertIn("not found", data["message"].lower())
+
+    def test_create_app_uses_existing_api_key_and_writes_file(self):
+        """It should use the existing API_KEY and write apikey.txt"""
+
+        original_key = getattr(config, "API_KEY", None)
+
+        try:
+            config.API_KEY = "TEST-KEY-123"
+
+            app_test = create_app()
+
+            self.assertEqual(app_test.config["API_KEY"], "TEST-KEY-123")
+
+            key_file = Path("apikey.txt")
+            self.assertTrue(key_file.exists())
+            self.assertEqual(
+                key_file.read_text(encoding="utf-8"),
+                "TEST-KEY-123",
+            )
+        finally:
+            config.API_KEY = original_key
+
+    def test_data_validation_error_handler(self):
+        """It should convert DataValidationError to a JSON 400 response"""
+
+        error = DataValidationError("bad data")
+        resp, code = data_validation_error(error)
+
+        self.assertEqual(code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp["status"], status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp["error"], "Bad Request")
+        self.assertIn("bad data", resp["message"])
