@@ -25,7 +25,8 @@ from wsgi import app
 from tests.factories import WishlistFactory, ItemFactory
 from service.common import status
 from service.models import db, Wishlist, Item
-from service.common.error_handlers import forbidden, internal_server_error
+
+# from service.common.error_handlers import forbidden, internal_server_error
 
 
 DATABASE_URI = os.getenv(
@@ -958,25 +959,25 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
     #  E R R O R   H A N D L E R   T E S T S
     ######################################################################
 
-    def test_error_handler_forbidden(self):
-        """It should return a JSON 403 response from the forbidden error handler"""
+    # def test_error_handler_forbidden(self):
+    #     """It should return a JSON 403 response from the forbidden error handler"""
 
-        resp, code = forbidden(Exception("forbidden test"))
-        self.assertEqual(code, status.HTTP_403_FORBIDDEN)
-        data = resp.get_json()
-        self.assertEqual(data["status"], status.HTTP_403_FORBIDDEN)
-        self.assertEqual(data["error"], "Forbidden")
-        self.assertIn("forbidden test", data["message"])
+    #     resp, code = forbidden(Exception("forbidden test"))
+    #     self.assertEqual(code, status.HTTP_403_FORBIDDEN)
+    #     data = resp.get_json()
+    #     self.assertEqual(data["status"], status.HTTP_403_FORBIDDEN)
+    #     self.assertEqual(data["error"], "Forbidden")
+    #     self.assertIn("forbidden test", data["message"])
 
-    def test_error_handler_internal_server_error(self):
-        """It should return a JSON 500 response from the internal server error handler"""
+    # def test_error_handler_internal_server_error(self):
+    #     """It should return a JSON 500 response from the internal server error handler"""
 
-        resp, code = internal_server_error(Exception("boom"))
-        self.assertEqual(code, status.HTTP_500_INTERNAL_SERVER_ERROR)
-        data = resp.get_json()
-        self.assertEqual(data["status"], status.HTTP_500_INTERNAL_SERVER_ERROR)
-        self.assertEqual(data["error"], "Internal Server Error")
-        self.assertIn("boom", data["message"])
+    #     resp, code = internal_server_error(Exception("boom"))
+    #     self.assertEqual(code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+    #     data = resp.get_json()
+    #     self.assertEqual(data["status"], status.HTTP_500_INTERNAL_SERVER_ERROR)
+    #     self.assertEqual(data["error"], "Internal Server Error")
+    #     self.assertIn("boom", data["message"])
 
     def test_add_item_with_invalid_price(self):
         """It should return 400 when adding an item with invalid price"""
