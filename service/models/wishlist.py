@@ -122,16 +122,16 @@ class Wishlist(db.Model, PersistentBase):
     ######################################################################
     #  CLASS METHODS
     ######################################################################
-    @classmethod
-    def all(cls) -> list:
-        """
-        Retrieves all Wishlists from the database.
+    # @classmethod
+    # def all(cls) -> list:
+    #     """
+    #     Retrieves all Wishlists from the database.
 
-        :return: A list of all Wishlist objects found.
-        :rtype: list[Wishlist]
-        """
-        logger.info("Processing all Wishlists")
-        return cls.query.all()
+    #     :return: A list of all Wishlist objects found.
+    #     :rtype: list[Wishlist]
+    #     """
+    #     logger.info("Processing all Wishlists")
+    #     return cls.query.all()
 
     @classmethod
     def find_by_name(cls, name):
