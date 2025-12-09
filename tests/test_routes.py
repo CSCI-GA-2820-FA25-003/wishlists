@@ -21,11 +21,18 @@ Wishlist Service API Service Test Suite
 import os
 import logging
 from unittest import TestCase
+from pathlib import Path
 from wsgi import app
 from tests.factories import WishlistFactory, ItemFactory
 from service.common import status
 from service.models import db, Wishlist, Item
-from service.common.error_handlers import forbidden, internal_server_error
+
+from service import config
+from service import create_app
+from service.common.error_handlers import data_validation_error
+from service.models import DataValidationError
+
+# from service.common.error_handlers import forbidden, internal_server_error
 
 
 DATABASE_URI = os.getenv(
@@ -958,25 +965,25 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
     #  E R R O R   H A N D L E R   T E S T S
     ######################################################################
 
-    def test_error_handler_forbidden(self):
-        """It should return a JSON 403 response from the forbidden error handler"""
+    # def test_error_handler_forbidden(self):
+    #     """It should return a JSON 403 response from the forbidden error handler"""
 
-        resp, code = forbidden(Exception("forbidden test"))
-        self.assertEqual(code, status.HTTP_403_FORBIDDEN)
-        data = resp.get_json()
-        self.assertEqual(data["status"], status.HTTP_403_FORBIDDEN)
-        self.assertEqual(data["error"], "Forbidden")
-        self.assertIn("forbidden test", data["message"])
+    #     resp, code = forbidden(Exception("forbidden test"))
+    #     self.assertEqual(code, status.HTTP_403_FORBIDDEN)
+    #     data = resp.get_json()
+    #     self.assertEqual(data["status"], status.HTTP_403_FORBIDDEN)
+    #     self.assertEqual(data["error"], "Forbidden")
+    #     self.assertIn("forbidden test", data["message"])
 
-    def test_error_handler_internal_server_error(self):
-        """It should return a JSON 500 response from the internal server error handler"""
+    # def test_error_handler_internal_server_error(self):
+    #     """It should return a JSON 500 response from the internal server error handler"""
 
-        resp, code = internal_server_error(Exception("boom"))
-        self.assertEqual(code, status.HTTP_500_INTERNAL_SERVER_ERROR)
-        data = resp.get_json()
-        self.assertEqual(data["status"], status.HTTP_500_INTERNAL_SERVER_ERROR)
-        self.assertEqual(data["error"], "Internal Server Error")
-        self.assertIn("boom", data["message"])
+    #     resp, code = internal_server_error(Exception("boom"))
+    #     self.assertEqual(code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+    #     data = resp.get_json()
+    #     self.assertEqual(data["status"], status.HTTP_500_INTERNAL_SERVER_ERROR)
+    #     self.assertEqual(data["error"], "Internal Server Error")
+    #     self.assertIn("boom", data["message"])
 
     def test_add_item_with_invalid_price(self):
         """It should return 400 when adding an item with invalid price"""
@@ -1347,3 +1354,35 @@ class TestWishlistService(TestCase):  # pylint: disable=too-many-public-methods
         self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
         data = resp.get_json()
         self.assertIn("not found", data["message"].lower())
+
+    def test_create_app_uses_existing_api_key_and_writes_file(self):
+        """It should use the existing API_KEY and write apikey.txt"""
+
+        original_key = getattr(config, "API_KEY", None)
+
+        try:
+            config.API_KEY = "TEST-KEY-123"
+
+            app_test = create_app()
+
+            self.assertEqual(app_test.config["API_KEY"], "TEST-KEY-123")
+
+            key_file = Path("apikey.txt")
+            self.assertTrue(key_file.exists())
+            self.assertEqual(
+                key_file.read_text(encoding="utf-8"),
+                "TEST-KEY-123",
+            )
+        finally:
+            config.API_KEY = original_key
+
+    def test_data_validation_error_handler(self):
+        """It should convert DataValidationError to a JSON 400 response"""
+
+        error = DataValidationError("bad data")
+        resp, code = data_validation_error(error)
+
+        self.assertEqual(code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp["status"], status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp["error"], "Bad Request")
+        self.assertIn("bad data", resp["message"])

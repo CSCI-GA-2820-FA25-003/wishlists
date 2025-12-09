@@ -256,6 +256,10 @@ spec:
     - name: base-url
       description: The url of the application to test
       type: string
+    - name: api-key
+      description: API key for the wishlist service
+      type: string
+      default: "dev-api-key-123"
     - name: wait-seconds
       description: The number of seconds to wait for a reply
       type: string
@@ -275,11 +279,14 @@ spec:
          value: $(params.wait-seconds)
        - name: DRIVER
          value: $(params.driver)
+       - name: API_KEY
+         value: $(params.api-key)
       script: |
         #!/bin/bash
         set -e
         export PATH=$PATH:$HOME/.local/bin:
         echo "DEBUG >>> BASE_URL in container: $BASE_URL"
+        echo "DEBUG >>> API_KEY in container: $API_KEY"
         echo "***** Installing dependencies *****"
         if [ -e "poetry.lock" ]; then
           echo "Found poetry.lock file: using poetry"
