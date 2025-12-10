@@ -55,122 +55,193 @@ make deploy         # deploy all manifests under ./k8s
 
 Service will run at http://localhost:8080/
 
-## API Documents
+## Accessing the API
 
-| **Method** | **Endpoint**                               | **Purpose / Description**                                         |
-| :--------- | :----------------------------------------- | :---------------------------------------------------------------- |
-| **GET** | `/` | return index.html |
-| **GET** | `/api` | Get service metadata |
-| **GET**    | `/wishlists`                               | Get a list of all wishlists of a customer                         |
-| **GET**    | `/wishlists/{wishlist_id}`                 | Get details of a specific wishlist                                |
-| **POST**   | `/wishlists`                               | Create a new wishlist for a customer                              |
-| **PUT**    | `/wishlists/{wishlist_id}`                 | Update the attributes (name, description) of an existing wishlist |
-| **DELETE** | `/wishlists/{wishlist_id}`                 | Delete a wishlist                                                 |
-| **GET**    | `/wishlists/{wishlist_id}/items`           | Get all items of a specific wishlist                              |
-| **GET**    | `/wishlists/{wishlist_id}/items/{item_id}` | Get one specific item from a wishlist                             |
-| **POST**   | `/wishlists/{wishlist_id}/items`           | Add a new item to a wishlist                                      |
-| **PUT**    | `/wishlists/{wishlist_id}/items/{item_id}` | Update details of an existing item                                |
-| **DELETE** | `/wishlists/{wishlist_id}/items/{item_id}` | Remove an item from a wishlist                                    |
-| **PUT**    | `/wishlists/{wishlist_id}/clear` | Clear all items from a wishlist  |  
-| **PUT**    | `/wishlists/{wishlist_id}/share` | Share a wishlist  | 
+### Swagger Documentation (Recommended)
 
-**Query Parameters**
+The easiest way to explore and test the API is through the **Swagger UI** interface:
 
-	GET /wishlists
-	  •customer_id (string): filter wishlists by customer
-	  •name (string): requires customer_id; case-insensitive substring match on wishlist name
-	  •If any unknown query parameter is present → 400 Bad Request
-	GET /wishlists/{wishlist_id}/items
-	  •product_id (int): exact match
-	  •product_name (string): case-insensitive substring match
-	  •If any unknown query parameter is present → 400 Bad Request
+1. **Start the service** (if not already running):
 
-**Sample Commands**
-  
-1. Create a wishlist
-```
-curl -X POST \
-  -H "Content-Type: application/json" \
-  -d '{"customer_id": "User001", "name": "Holiday Gifts", "description": "Winter wishlist"}' \
-  http://localhost:8080/wishlists
-```
+   ```bash
+   honcho start
+   ```
 
-2. Get all wishlists
-```
-curl -X GET http://localhost:8080/wishlists
-curl -X GET http://localhost:8080/wishlists?customer_id=12345
-curl -X GET http://localhost:8080/wishlists?customer_id=12345&name=deal
-```
+2. **Open Swagger UI** in your browser:
 
-3. Update a wishlist
-```
-curl -X PUT \
-  -H "Content-Type: application/json" \
-  -H "X-Customer-Id: User001" \
-  -d '{"name": "Holiday Gifts Updated"}' \
-  http://localhost:8080/wishlists/1
-```
+   ```text
+   http://localhost:8080/apidocs
+   ```
 
-4. Delete a wishlist
-```
-curl -X DELETE http://localhost:8080/wishlists/1
-```
+   ![Swagger UI Interface](assets/swagger-ui-screenshot.png)
 
-5. Add an item to a wishlist
-```
-curl -X POST \
-  -H "Content-Type: application/json" \
-  -d '{"product_id": 123, "product_name": "Noise Cancelling Headphones", "price": 299.99}' \
-  http://localhost:8080/wishlists/1/items
-```
+### API Authentication
 
-6. Get all items in a wishlist
-```
-curl -X GET http://localhost:8080/wishlists/1/items
-curl -X GET http://localhost:8080/wishlists/1/items?product_id=123
-curl -X GET http://localhost:8080/wishlists/1/items?product_name=Headphones
-```
+Some operations require authentication using an API key passed in the `X-Api-Key` header.
 
-7. Update an item
-```
-curl -X PUT \
-  -H "Content-Type: application/json" \
-  -d '{
-    "wishlist_id": 1,
-    "customer_id": "User0001",
-    "product_id": 123456,
-    "product_name": "Headphones V2",
-    "prices": 249.99,
-    "wish_date": "2025-10-15T12:00:00-04:00"
-  }' \
-  http://localhost:8080/wishlists/1/items/2
-```
+**Protected Endpoints** (require API key):
 
-8. Delete an item
-```
-curl -X DELETE http://localhost:8080/wishlists/1/items/2
-```
+* `POST /api/wishlists` - Create a wishlist
+* `PUT /api/wishlists/{id}` - Update a wishlist
+* `DELETE /api/wishlists/{id}` - Delete a wishlist
 
-9. Get a single item from a wishlist
-```
-curl -X GET http://localhost:8080/wishlists/1/items/2
-```
+**Getting Your API Key**:
 
-10. Get a single wishlist
-```
-curl -X GET http://localhost:8080/wishlists/1
-```
+* **Local Development**: The API key is stored in `apikey.txt` in the project root. **Note**: Running pytest will overwrite this file, so make sure to copy the key immediately after starting the service.
+* **OpenShift Deployment**: Use the API key `dev-api-key-123`
 
-11. Clear a wishlist
-```
-curl -X PUT http://localhost:8080/wishlists/1/clear -i
-```
-12. Share a wishlist
-```
-curl -X PUT http://localhost:8080/wishlists/1/share -i
-```
+## API Endpoint Reference
 
+All REST API endpoints are prefixed with `/api`. The table below shows the available operations:
 
+| **Method** | **Endpoint**                               | **Auth Required** | **Purpose / Description**                                         |
+| :--------- | :----------------------------------------- | :--------------- | :---------------------------------------------------------------- |
+| **GET** | `/` | No | Return the Admin UI (index.html) |
+| **GET** | `/health` | No | Health check endpoint |
+| **GET** | `/api-info` | No | Get service metadata and endpoint listing |
+| **GET**    | `/api/wishlists`                               | No | Get a list of all wishlists (supports filtering)                         |
+| **GET**    | `/api/wishlists/{wishlist_id}`                 | No | Get details of a specific wishlist                                |
+| **POST**   | `/api/wishlists`                               | **Yes** | Create a new wishlist for a customer                              |
+| **PUT**    | `/api/wishlists/{wishlist_id}`                 | **Yes** | Update the attributes (name, description) of an existing wishlist |
+| **DELETE** | `/api/wishlists/{wishlist_id}`                 | **Yes** | Delete a wishlist                                                 |
+| **GET**    | `/api/wishlists/{wishlist_id}/items`           | No | Get all items of a specific wishlist (supports filtering)                              |
+| **GET**    | `/api/wishlists/{wishlist_id}/items/{item_id}` | No | Get one specific item from a wishlist                             |
+| **POST**   | `/api/wishlists/{wishlist_id}/items`           | No | Add a new item to a wishlist                                      |
+| **PUT**    | `/api/wishlists/{wishlist_id}/items/{item_id}` | No | Update details of an existing item                                |
+| **DELETE** | `/api/wishlists/{wishlist_id}/items/{item_id}` | No | Remove an item from a wishlist                                    |
+| **PUT**    | `/api/wishlists/{wishlist_id}/clear` | No | Clear all items from a wishlist  |  
+| **PUT**    | `/api/wishlists/{wishlist_id}/share` | No | Share a wishlist |
+
+## API Usage Examples
+
+Below are example `curl` commands demonstrating common API operations. Replace `YOUR_API_KEY_HERE` with your actual API key for protected endpoints.
+
+### Wishlist Operations
+
+1. **Create a wishlist** (requires API key)
+
+   ```bash
+   curl -X POST http://localhost:8080/api/wishlists \
+     -H "Content-Type: application/json" \
+     -H "X-Api-Key: YOUR_API_KEY_HERE" \
+     -d '{
+       "customer_id": "CUST001",
+       "name": "Holiday Gifts",
+       "description": "Winter wishlist"
+     }'
+   ```
+
+2. **Get all wishlists**
+
+   ```bash
+   curl -X GET http://localhost:8080/api/wishlists
+   ```
+
+3. **Get wishlists by customer**
+
+   ```bash
+   curl -X GET "http://localhost:8080/api/wishlists?customer_id=CUST001"
+   ```
+
+4. **Search wishlists by name**
+
+   ```bash
+   curl -X GET "http://localhost:8080/api/wishlists?customer_id=CUST001&name=Holiday"
+   ```
+
+5. **Get a specific wishlist**
+
+   ```bash
+   curl -X GET http://localhost:8080/api/wishlists/1
+   ```
+
+6. **Update a wishlist** (requires API key)
+
+   ```bash
+   curl -X PUT http://localhost:8080/api/wishlists/1 \
+     -H "Content-Type: application/json" \
+     -H "X-Api-Key: YOUR_API_KEY_HERE" \
+     -H "X-Customer-Id: CUST001" \
+     -d '{
+       "name": "Holiday Gifts Updated",
+       "description": "Updated wishlist for winter holidays"
+     }'
+   ```
+
+7. **Delete a wishlist** (requires API key)
+
+   ```bash
+   curl -X DELETE http://localhost:8080/api/wishlists/1 \
+     -H "X-Api-Key: YOUR_API_KEY_HERE"
+   ```
+
+8. **Clear all items from a wishlist**
+
+   ```bash
+   curl -X PUT http://localhost:8080/api/wishlists/1/clear
+   ```
+
+9. **Share a wishlist**
+
+   ```bash
+   curl -X PUT http://localhost:8080/api/wishlists/1/share
+   ```
+
+### Wishlist Item Operations
+
+1. **Add an item to a wishlist**
+
+   ```bash
+   curl -X POST http://localhost:8080/api/wishlists/1/items \
+     -H "Content-Type: application/json" \
+     -d '{
+       "product_id": 12345,
+       "product_name": "Wireless Headphones",
+       "prices": 79.99
+     }'
+   ```
+
+2. **Get all items in a wishlist**
+
+   ```bash
+   curl -X GET http://localhost:8080/api/wishlists/1/items
+   ```
+
+3. **Filter items by product ID**
+
+   ```bash
+   curl -X GET "http://localhost:8080/api/wishlists/1/items?product_id=12345"
+   ```
+
+4. **Search items by product name**
+
+   ```bash
+   curl -X GET "http://localhost:8080/api/wishlists/1/items?product_name=Headphones"
+   ```
+
+5. **Get a specific item**
+
+   ```bash
+   curl -X GET http://localhost:8080/api/wishlists/1/items/2
+   ```
+
+6. **Update an item**
+
+   ```bash
+   curl -X PUT http://localhost:8080/api/wishlists/1/items/2 \
+     -H "Content-Type: application/json" \
+     -d '{
+       "product_id": 12345,
+       "product_name": "Wireless Headphones V2",
+       "prices": 89.99
+     }'
+   ```
+
+7. **Delete an item**
+
+   ```bash
+   curl -X DELETE http://localhost:8080/api/wishlists/1/items/2
+   ```
 ## Testing Instructions
 
 Run the tests by:
@@ -242,9 +313,13 @@ The project contains the following:
 ├── Pipfile.lock              - Locked dependency versions
 ├── Procfile                  - Process definition for Honcho/Gunicorn
 ├── README.md                 - Project documentation
+├── apikey.txt                - API key for local development
 ├── dot-env-example           - Example environment variable file
 ├── setup.cfg                 - Linting and formatting configuration
 ├── wsgi.py                   - WSGI entry point for Gunicorn
+│
+├── assets/                   - Documentation assets
+│   └── swagger-ui-screenshot.png - Swagger UI interface screenshot
 │
 ├── features/                 - BDD test scenarios and step definitions
 │   ├── environment.py        - Behave environment setup
